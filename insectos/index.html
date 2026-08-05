@@ -182,8 +182,10 @@
 <meta name="theme-color" content="#016631">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Insectos">
+<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+<link rel="apple-touch-icon" href="./icon-180.png">
 </head>
 <body>
 
@@ -191,7 +193,7 @@
 <div id="diag"></div>
 <script>
 /* Verificador: si algo falla, se ve en pantalla y no queda una página en blanco. */
-window.__APP = "insectos"; window.__VER = "2026-08-04.1"; window.__fallas = [];
+window.__APP = "insectos"; window.__VER = "2026-08-05.2"; window.__fallas = [];
 function mostrarFalla(titulo, detalle){
   window.__fallas.push(titulo + " :: " + detalle);
   var d = document.getElementById("fatal");
@@ -248,6 +250,9 @@ const LOGO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQ
 const OTRA_LIBRE = "Otra ¿cuál?";
 const CONFIG = {
   SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxT9Q17JawpSQbHXYMwj4wutZAXz8tlLy8SGDBZx-24PeZ8fZab1ay2Nz7-fciXaAenOg/exec",   // URL /exec del Apps Script del libro Insectos (opcional)
+  /* Enlace al Google Sheet. Pega aquí la dirección del libro y aparecerá
+     un botón para abrirlo desde la pantalla de estado. */
+  SHEET_URL: "",
   ACTIV: ["Inoculación de trigo", "Instalación en cosechadora", "Retiro y limpieza"],
   FINCAS: ["Argelia", "Bolívar 1", "Bolívar 2", "Caicedonia", "Cajamarca", "El Bosque", "La Ceiba"],
   /* Tareas sueltas del laboratorio. Agrega o quita de esta lista lo que necesites;
@@ -1200,16 +1205,56 @@ window.addEventListener("online", function(){ toast("Volvió la señal — envia
    PANTALLA DE DIAGNÓSTICO  (botón "estado" abajo a la derecha)
    Responde de una: ¿por qué no está subiendo?
    ========================================================================= */
+/* ---- Enlace al Google Sheet ----------------------------------------------
+   Se puede dejar escrito en CONFIG.SHEET_URL, o pegarlo desde la app.
+   Lo pegado se guarda en el celular y manda sobre lo escrito en CONFIG. */
+var SHEET_KEY = LS_KEY + "_sheet";
+function sheetURL(){
+  try { var v = localStorage.getItem(SHEET_KEY); if(v) return v; } catch(e){}
+  return CONFIG.SHEET_URL || "";
+}
+function abrirSheet(){
+  var u = sheetURL();
+  if(!u){ configurarSheet(); return; }
+  window.open(u, "_blank");
+}
+function configurarSheet(){
+  var actual = sheetURL();
+  var u = prompt("Pega la dirección del Google Sheet\n(la que empieza por https://docs.google.com/spreadsheets/...)", actual || "");
+  if(u === null) return;                       // canceló
+  u = String(u).trim();
+  if(u === ""){                                 // lo borró: vuelve a lo de CONFIG
+    try { localStorage.removeItem(SHEET_KEY); } catch(e){}
+    toast("Enlace borrado"); estadoApp(); return;
+  }
+  if(!/^https:\/\/docs\.google\.com\/spreadsheets\//.test(u)){
+    alert("Esa no parece la dirección de un Google Sheet.\n\nDebe empezar por:\nhttps://docs.google.com/spreadsheets/\n\nOjo: NO es la dirección que termina en /exec.");
+    return;
+  }
+  try { localStorage.setItem(SHEET_KEY, u); } catch(e){}
+  toast("Enlace guardado ✓"); estadoApp();
+}
+function instalada(){
+  try {
+    if(navigator.standalone) return true;                       // iOS
+    if(window.matchMedia) return window.matchMedia("(display-mode: standalone)").matches;
+  } catch(e){}
+  return false;
+}
+function cerrarDiag(){ document.getElementById('diag').className = ''; }
 function estadoApp(){
   var pend = (typeof unsynced === "function") ? unsynced().length : "?";
   var total = (state && state.entries) ? state.entries.length : "?";
   var archivo = (location.protocol === "file:");
   var f = [
     ["Versión de la app", window.__VER, true],
+    ["Instalada en pantalla de inicio",
+      instalada() ? "sí" : "no — ábrela desde el ícono", instalada()],
     ["Cómo está abierta", archivo ? "archivo suelto (file://)" : location.origin, !archivo],
     ["Señal ahora", navigator.onLine ? "hay internet" : "sin internet", navigator.onLine],
     ["Copia para uso sin señal", SW_ESTADO, SW_ESTADO === "activo"],
     ["URL del Apps Script", CONFIG.SCRIPT_URL ? "configurada" : "FALTA", !!CONFIG.SCRIPT_URL],
+    ["Enlace al Google Sheet", sheetURL() ? "configurado" : "sin configurar", !!sheetURL()],
     ["Registros guardados aquí", String(total), true],
     ["Pendientes de subir", String(pend), pend === 0],
     ["Fallas detectadas", window.__fallas.length ? window.__fallas.join(" | ") : "ninguna",
@@ -1226,7 +1271,10 @@ function estadoApp(){
          +  'Ábrela desde su enlace de internet.</span></div>';
   }
   html += '<button onclick="intentarEnvioAuto()">Intentar enviar ahora</button>';
-  html += '<button class="gris" onclick="document.getElementById(\'diag\').className=\'\'">Cerrar</button>';
+  if(sheetURL()) html += '<button class="gris" onclick="abrirSheet()">Abrir el Google Sheet</button>';
+  html += '<button class="gris" onclick="configurarSheet()">'
+       +  (sheetURL() ? "Cambiar el enlace del Sheet" : "Configurar enlace del Sheet") + '</button>';
+  html += '<button class="gris" onclick="cerrarDiag()">Cerrar</button>';
   var d = document.getElementById("diag");
   d.innerHTML = html; d.className = "show";
 }
