@@ -2,7 +2,7 @@
    Guarda una copia de la app para que abra sin señal.
    IMPORTANTE: al cambiar la app hay que subir VERSION, si no los celulares
    siguen viendo la copia vieja. */
-var VERSION = "2026-08-05.2";
+var VERSION = "2026-08-14.1";
 var CACHE   = "insectos-" + VERSION;
 var ARCHIVOS = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png"];
 
