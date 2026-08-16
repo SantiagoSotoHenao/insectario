@@ -188,7 +188,7 @@
 <div id="diag"></div>
 <script>
 /* Verificador: si algo falla, se ve en pantalla y no queda una página en blanco. */
-window.__APP = "bacterias"; window.__VER = "2026-08-05.2"; window.__fallas = [];
+window.__APP = "bacterias"; window.__VER = "2026-08-14.1"; window.__fallas = [];
 function mostrarFalla(titulo, detalle){
   window.__fallas.push(titulo + " :: " + detalle);
   var d = document.getElementById("fatal");
@@ -250,25 +250,35 @@ const CONFIG = {
      desde la pantalla de estado. Si lo dejas vacio, el boton no sale. */
   SHEET_URL: "",
   MIX:     ["Rizobacillus S (mix 1)", "Rizobacillus T (mix 2)", "Rizosphere (mix 3)"],
-  FINCAS:  ["Argelia", "Bolívar 1", "Bolívar 2", "Caicedonia", "Cajamarca", "El Bosque", "La Ceiba"],
+  FINCAS:  ["Argelia", "Bolívar 1", "Bolívar 2", "Bolívar 3", "Caicedonia", "Cajamarca",
+            "El Bosque", "La Ceiba", "La Selva", "La Tesalia"],
   LAVADO:  ["Bidones", "Bioreactores", "Desinfección bioreact"],
   /* Tareas sueltas del laboratorio. Agrega o quita lo que necesites;
      deja siempre "Otra ¿cuál?" al final para poder escribir una a mano. */
   TAREAS:  ["Aseo laboratorio", "Fumigación", "Mantenimiento de equipos", "Limpieza de bodega", "Otra ¿cuál?"],
 
-  /* Opciones que salen al tocar una casilla numérica: del 1 al 100.
-     Cambia estos dos números si quieres otro rango. Los decimales, el 0
-     y cualquier valor fuera del rango siguen entrando por "Otro número". */
-  OPCIONES: { desde: 1, hasta: 100 }
+  /* Ya no hay lista general del 1 al 100: al tocar una casilla numerica se
+     abre directamente el teclado. Las UNICAS casillas que conservan lista de
+     sugerencias son las de LITROS, porque en el laboratorio siempre van en
+     multiplos de 4 (ver SUGS mas abajo). */
 };
 const MODULO = "Bioinsumos (bacterias)";
 const OTROS = "Otro ¿cuál?";
 CONFIG.ALIMENTO = ["Biorgánica/Orgánica", "Núcleo", OTROS];
 CONFIG.INSUMOS = CONFIG.MIX.concat(["Biorgánica/Orgánica", "Núcleo", "Peróxido", "Jabón enzimático", "Jabón en polvo", OTROS]);
 const DESINF = "Desinfección bioreact";
-/* Listas de sugerencias propias de ciertas casillas (el teclado sigue disponible en "Otro número") */
+/* Casillas de LITROS: en el laboratorio siempre se mueven en multiplos de 4,
+   asi que estas conservan la lista de opciones rapidas. Cualquier otra casilla
+   abre directamente el teclado.
+     l_inoculo         · inoculo al sembrar el lote
+     cantidad_esperada · litros que se esperan producir
+     l_cosechado       · litros realmente cosechados
+     litros            · litros despachados en cada linea de envio
+   Para quitarle la lista a una, borrala de aqui. Para agregarsela a otra,
+   escribe su nombre con _mult(desde, hasta, paso). */
 function _mult(a,b,p){ const o=[]; for(let i=a;i<=b;i+=p) o.push(String(i)); return o; }
-const SUGS = { l_inoculo:_mult(4,240,4), ml_peroxido:_mult(50,3000,50), litros:_mult(4,240,4) };
+const SUGS = { l_inoculo:_mult(4,240,4), cantidad_esperada:_mult(4,240,4),
+               l_cosechado:_mult(4,240,4), litros:_mult(4,240,4) };
 function sugsDe(key){ if(!key) return null; if(SUGS[key]) return SUGS[key];
   const m=String(key).match(/^it\d+_(.+)$/); return (m && SUGS[m[1]]) ? SUGS[m[1]] : null; }
 
@@ -281,7 +291,11 @@ let editing = null;       // id del registro que se edita, o null
 
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
 function load(){ try{ const r=localStorage.getItem(LS_KEY); if(r){ state=Object.assign({fecha:null,responsable:"",entries:[]}, JSON.parse(r)); return true; } }catch(e){} return false; }
-function today(){ return new Date().toISOString().slice(0,10); }
+/* Fecha de HOY en hora local. Con toISOString() pelado, despues de las 7 p.m.
+   el celular contestaba con la fecha de MANANA, porque UTC va 5 h adelante
+   de Colombia. Esto afectaba la fecha que sugiere la app al abrir sesion
+   y la fecha que lleva el id de cada registro. */
+function today(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function nowHM(){ return new Date().toTimeString().slice(0,5); }
 /* El id lleva la FECHA y un código fijo de este teléfono. Así dos personas que
    registran el mismo día —o la misma tanda dentro de 30 días— nunca chocan:
@@ -290,7 +304,7 @@ const DKEY = LS_KEY + "_dev";
 const DEV = (function(){ let d=null; try{ d=localStorage.getItem(DKEY); }catch(e){}
   if(!d){ d=Math.random().toString(36).slice(2,6); try{ localStorage.setItem(DKEY,d); }catch(e){} } return d; })();
 let _seq = 0;   // contador propio: dos ids del mismo teléfono NUNCA se repiten, ni en el mismo milisegundo
-function uid(){ return (state.fecha||today())+"-"+DEV+"-"+Date.now().toString(36)+"-"+((_seq++).toString(36))+Math.random().toString(36).slice(2,5); }
+function uid(){ return today()+"-"+DEV+"-"+Date.now().toString(36)+"-"+((_seq++).toString(36))+Math.random().toString(36).slice(2,5); }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 const app = document.getElementById("app");
 function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1400); }
@@ -356,16 +370,13 @@ function drawTBar(){
 let kp = { key:null, mode:'int', buf:'', label:'', onOk:null, modo:'opciones' };
 const kpEl = ()=>document.getElementById("kp");
 
-function sugerenciasDe(){
-  if(kp && kp.sugs && kp.sugs.length) return kp.sugs;
-  const a=(CONFIG.OPCIONES && CONFIG.OPCIONES.desde) || 1;
-  const b=(CONFIG.OPCIONES && CONFIG.OPCIONES.hasta) || 100;
-  const out=[]; for(let i=a;i<=b;i++) out.push(String(i));
-  return out;
-}
+function sugerenciasDe(){ return (kp && kp.sugs && kp.sugs.length) ? kp.sugs : []; }
 function openKeypad(key,mode,label,onOk,sugs){
   const cur=(key&&draft&&draft[key]!=null&&draft[key]!=='')?String(draft[key]):'';
-  kp={key,mode:mode||'int',buf:cur,label:label||'',onOk:onOk||null,modo:'opciones',sugs:sugs||sugsDe(key)};
+  const lista = sugs || sugsDe(key);
+  /* Si la casilla no tiene lista de sugerencias, se abre el teclado de una. */
+  kp={key,mode:mode||'int',buf:cur,label:label||'',onOk:onOk||null,
+      modo:(lista&&lista.length)?'opciones':'teclado',sugs:lista};
   drawPicker();
 }
 function closeKeypad(){ kpEl().innerHTML=""; }
@@ -395,11 +406,12 @@ function drawKeypad(){
   kpEl().innerHTML = `<div class="kpmask" id="kpmask"></div><div class="kpsheet">
     <div class="kplab">${kp.label}</div><div class="kpshow">${kp.buf||"0"}</div>
     <div class="kpgrid">${[1,2,3,4,5,6,7,8,9].map(d=>`<button data-k="${d}">${d}</button>`).join("")}${dot}<button data-k="0">0</button><button class="del" data-k="del">⌫</button></div>
-    <button class="kpotro" id="kpvolver" style="margin-top:10px">↩ Volver a las opciones</button>
+    ${(kp.sugs&&kp.sugs.length)?`<button class="kpotro" id="kpvolver" style="margin-top:10px">↩ Volver a las opciones</button>`:''}
     <div class="kprow"><button class="cancel" id="kpcancel">Cancelar</button><button class="ok" id="kpok">Listo</button></div></div>`;
   document.getElementById("kpmask").onclick=closeKeypad;
   document.getElementById("kpcancel").onclick=closeKeypad;
-  document.getElementById("kpvolver").onclick=()=>{ kp.modo='opciones'; drawPicker(); };
+  const _volver=document.getElementById("kpvolver");
+  if(_volver) _volver.onclick=()=>{ kp.modo='opciones'; drawPicker(); };
   document.getElementById("kpok").onclick=()=>commitVal(kp.buf);
   kpEl().querySelectorAll(".kpgrid button").forEach(b=> b.onclick=()=>{ const k=b.dataset.k;
     if(k==="del") kp.buf=kp.buf.slice(0,-1);
@@ -413,6 +425,36 @@ function numField(key,label,mode,cls){ const v=(draft&&draft[key]!=null?draft[ke
 function bindNum(){ document.querySelectorAll(".numfield").forEach(el=> el.onclick=()=> openKeypad(el.dataset.key, el.dataset.mode, el.dataset.label, null, sugsDe(el.dataset.key))); }
 function bindTxt(){ document.querySelectorAll("[data-txt]").forEach(el=> el.oninput=()=>{ draft[el.dataset.txt]=el.value; }); }
 function bindSelects(){ document.querySelectorAll("select[data-key]").forEach(el=> el.onchange=()=>{ draft[el.dataset.key]=el.value; }); }
+
+/* =========================================================================
+   DESPLEGABLE CON "OTRA / OTRO ¿CUAL?"
+   Sirve para cualquier lista que pueda crecer con el tiempo: fincas, mixes,
+   actividades, estados, tipos de lavado. Si el operario escoge la ultima
+   opcion, aparece una casilla de texto y lo que escriba es lo que se guarda
+   en el campo. Mientras no escriba nada, el campo queda con el valor
+   "Otra ¿cual?", que es lo que revisa faltaOtro() al guardar.
+   ========================================================================= */
+function selOtro(key, label, lista){
+  const val = draft[key]||"";
+  const enLista = lista.indexOf(val)>=0;
+  const esOtro  = (val===OTROS) || (val!=="" && !enLista);
+  return `<label class="fl">${label}</label>
+    <select class="fin" data-selotro="${key}">${opts(lista.concat([OTROS]), esOtro?OTROS:val)}</select>
+    ${esOtro?`<input class="fin" style="margin-top:8px" data-txtotro="${key}" value="${esc(val===OTROS?"":val)}" placeholder="Escribe cual">`:''}`;
+}
+function bindSelOtro(alCambiar){
+  document.querySelectorAll("[data-selotro]").forEach(s=> s.onchange=()=>{
+    const k=s.dataset.selotro; draft[k]=s.value;
+    if(alCambiar) alCambiar(k, s.value);
+    render(); });
+  document.querySelectorAll("[data-txtotro]").forEach(t=> t.oninput=()=>{
+    draft[t.dataset.txtotro] = t.value.trim() || OTROS; });
+}
+/* true si alguno de los campos quedo en "Otra ¿cual?" sin escribir nada */
+function faltaOtro(){
+  for(let i=0;i<arguments.length;i++) if(draft[arguments[i]]===OTROS) return true;
+  return false;
+}
 
 /* =========================================================================
    RENDER
@@ -521,7 +563,7 @@ function editHead(title){ return `<div class="topbar"><button class="iconbtn" id
 function renderLote(){
   app.innerHTML=`${editHead("Producir lote")}<div class="wrap">
       ${numField('lote','N.º de lote','int')}
-      <label class="fl">Mix / producto</label><select class="fin" data-key="mix">${opts(CONFIG.MIX,draft.mix)}</select>
+      ${selOtro('mix','Mix / producto',CONFIG.MIX)}
       ${numField('l_inoculo','INÓCULO (L)','dec')}
       ${numField('cantidad_esperada','CANTIDAD ESPERADA (L)','dec')}
       <div class="sec" style="margin-top:8px">Alimento usado (opcional)</div>
@@ -532,10 +574,11 @@ function renderLote(){
       ${bloqueTiempo("lote","Producir lote")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar siembra'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Producir lote");
+  document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Producir lote");
   document.getElementById("al_tipo").onchange=e=>{ const v=e.target.value; draft.alimento=(v==="—"?"":v); if(v!==OTROS) draft.alimento_detalle=""; render(); };
   document.getElementById("save").onclick=()=>{
     if(!draft.l_inoculo && !draft.cantidad_esperada){ toast("Pon inóculo o cantidad esperada"); return; }
+    if(faltaOtro('mix')){ toast("Escribe cuál es el mix"); return; }
     if(draft.alimento===OTROS && draft.alimento_kg && !draft.alimento_detalle){ toast("Escribe cuál alimento"); return; }
     if(draft.alimento && !draft.alimento_kg){ toast("Falta los kg de alimento"); return; }
     const id=push("lote"); tReset("lote");
@@ -551,16 +594,17 @@ function renderLote(){
 function renderCosecha(){
   app.innerHTML=`${editHead("Cosechar lote")}<div class="wrap">
       ${numField('lote','N.º de lote','int')}
-      <label class="fl">Mix cosechado</label><select class="fin" data-key="mix">${opts(CONFIG.MIX,draft.mix)}</select>
+      ${selOtro('mix','Mix cosechado',CONFIG.MIX)}
       ${numField('l_cosechado','VOLUMEN COSECHADO (L)','dec')}
       ${numField('descarte','DESCARTE (L)','dec')}
-      <label class="fl">Finca destino</label><select class="fin" data-key="finca">${opts(CONFIG.FINCAS,draft.finca)}</select>
-      <label class="fl">Estado</label><select class="fin" data-key="estado">${opts(["Entregado","En laboratorio"],draft.estado)}</select>
+      ${selOtro('finca','Finca destino',CONFIG.FINCAS)}
+      ${selOtro('estado','Estado',["Entregado","En laboratorio"])}
       ${bloqueTiempo("cosecha","Cosechar lote")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar cosecha'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Cosechar lote");
-  document.getElementById("save").onclick=()=>{ if(!draft.l_cosechado){ toast("Falta el volumen cosechado"); return; } push("cosecha"); tReset("cosecha"); toast(editing?"Cambios guardados ✓":"Cosecha guardada ✓"); goHome(); };
+  document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Cosechar lote");
+  document.getElementById("save").onclick=()=>{ if(!draft.l_cosechado){ toast("Falta el volumen cosechado"); return; }
+    if(faltaOtro('mix','finca','estado')){ toast("Escribe cuál falta"); return; } push("cosecha"); tReset("cosecha"); toast(editing?"Cambios guardados ✓":"Cosecha guardada ✓"); goHome(); };
 }
 
 /* ---------- INGRESO DE BIDONES ---------- */
@@ -569,19 +613,20 @@ function renderBidon(){
       ${numField('total','N.º DE BIDONES QUE LLEGAN','int')}
       <div class="sec" style="margin-top:6px">Estado (lo que no llenes queda en 0)</div>
       <div class="mini4">${numField('danados','Dañados','int','sm')}${numField('limpios','Limpios','int','sm')}${numField('sin_lavar','Sin lavar','int','sm')}${numField('incompletos','Incompletos','int','sm')}</div>
-      <label class="fl">Finca / origen</label><select class="fin" data-key="finca">${opts(CONFIG.FINCAS,draft.finca)}</select>
+      ${selOtro('finca','Finca / origen',CONFIG.FINCAS)}
       ${bloqueTiempo("bidon","Ingreso de bidones")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar ingreso'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Ingreso de bidones");
+  document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Ingreso de bidones");
   document.getElementById("save").onclick=()=>{ if(!draft.total && !draft.danados && !draft.limpios && !draft.sin_lavar && !draft.incompletos){ toast("Pon cuántos bidones"); return; }
+    if(faltaOtro('finca')){ toast("Escribe cuál es la finca"); return; }
     ["danados","limpios","sin_lavar","incompletos"].forEach(k=>{ if(draft[k]==="") draft[k]="0"; }); push("bidon"); tReset("bidon"); toast(editing?"Cambios guardados ✓":"Ingreso guardado ✓"); goHome(); };
 }
 
 /* ---------- LAVADO (cronómetro con pausa) ---------- */
 function renderLavado(){
   app.innerHTML=`${editHead("Lavado")}<div class="wrap">
-      <label class="fl">Tipo de lavado</label><select class="fin" id="lv_tipo">${opts(CONFIG.LAVADO,draft.tipo_lavado)}</select>
+      ${selOtro('tipo_lavado','Tipo de lavado',CONFIG.LAVADO)}
       ${numField('unidades','N.º de unidades lavadas','int')}
       ${draft.tipo_lavado===DESINF?`
       <div class="sec" style="margin-top:8px">Desinfección — insumo y lote</div>
@@ -592,9 +637,12 @@ function renderLavado(){
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar lavado'}</button></div>`;
   document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Lavado");
-  document.getElementById("lv_tipo").onchange=e=>{ draft.tipo_lavado=e.target.value; if(draft.tipo_lavado!==DESINF){ draft.ml_peroxido=""; draft.lote=""; } render(); };
+  /* Si el lavado deja de ser desinfeccion, se borran peroxido y lote para que
+     no queden datos pegados de la opcion anterior. */
+  bindSelOtro(function(k,v){ if(k==="tipo_lavado" && v!==DESINF){ draft.ml_peroxido=""; draft.lote=""; } });
   document.getElementById("save").onclick=()=>{
     if(!draft.duracion_min){ toast("Falta la duración"); return; }
+    if(faltaOtro('tipo_lavado')){ toast("Escribe cuál fue el lavado"); return; }
     const id=push("lavado"); tReset("lavado");
     if(draft.tipo_lavado===DESINF && draft.ml_peroxido)
       autoEntry(id,"per","inventario",{ movimiento:"Salida", insumo:"Peróxido", otros_detalle:"",
@@ -638,14 +686,13 @@ function renderEnvio(){
     cards+=`<div class="itemcard">
         <div class="cch"><span class="n">Mix ${i+1} de ${n}</span>
           ${n>1?`<button class="rm" data-rm="${i}" style="margin-left:auto;border:none;background:none;color:#B0402A;font-weight:800;font-size:17px">✕</button>`:''}</div>
-        <label class="fl" style="margin-top:0">Mix / producto</label>
-        <select class="fin" data-isel="${i}">${opts(CONFIG.MIX, draft["it"+i+"_mix"]||CONFIG.MIX[0])}</select>
+        ${selOtro("it"+i+"_mix","Mix / producto",CONFIG.MIX)}
         <div class="grid2">${numField("it"+i+"_lote","N.º DE LOTE","int","sm")}${numField("it"+i+"_litros","LITROS ENVIADOS","dec","sm")}</div>
       </div>`;
   }
   app.innerHTML=`${editHead("Envío / despacho")}<div class="wrap">
       <div class="p">Un mismo despacho puede llevar varios mix y varios lotes. Agrega una tarjeta por cada combinación.</div>
-      <label class="fl">Finca destino</label><select class="fin" data-key="finca">${opts(CONFIG.FINCAS,draft.finca)}</select>
+      ${selOtro('finca','Finca destino',CONFIG.FINCAS)}
       <label class="fl">Remisión / guía (opcional)</label><input class="fin" data-txt="remision" value="${esc(draft.remision)}" placeholder="N.º de remisión">
       <div class="sec" style="margin-top:14px">Producto despachado</div>
       ${cards}
@@ -653,8 +700,7 @@ function renderEnvio(){
       ${bloqueTiempo("envio","Envío / despacho")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar envío'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Envío / despacho");
-  document.querySelectorAll("[data-isel]").forEach(s=> s.onchange=()=>{ draft["it"+s.dataset.isel+"_mix"]=s.value; });
+  document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Envío / despacho");
   document.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{
     const idx=+b.dataset.rm;
     for(let i=idx;i<n-1;i++) ["mix","lote","litros","id"].forEach(k=>{ draft["it"+i+"_"+k]=draft["it"+(i+1)+"_"+k]; });
@@ -666,6 +712,8 @@ function renderEnvio(){
   document.getElementById("save").onclick=()=>{
     const llenos=[]; for(let i=0;i<n;i++) if(draft["it"+i+"_litros"]) llenos.push(i);
     if(!llenos.length){ toast("Pon al menos los litros de un mix"); return; }
+    if(faltaOtro('finca')){ toast("Escribe cuál es la finca"); return; }
+    for(const i of llenos) if(draft["it"+i+"_mix"]===OTROS){ toast("Escribe cuál es el mix"); return; }
     llenos.forEach((i,k)=>{
       const id = draft["it"+i+"_id"] || (draft.envio_id+"-e"+i);
       const e={ id, tipo:"envio", fecha:state.fecha, responsable:state.responsable,
