@@ -193,7 +193,7 @@
 <div id="diag"></div>
 <script>
 /* Verificador: si algo falla, se ve en pantalla y no queda una página en blanco. */
-window.__APP = "insectos"; window.__VER = "2026-08-05.2"; window.__fallas = [];
+window.__APP = "insectos"; window.__VER = "2026-08-14.1"; window.__fallas = [];
 function mostrarFalla(titulo, detalle){
   window.__fallas.push(titulo + " :: " + detalle);
   var d = document.getElementById("fatal");
@@ -254,15 +254,15 @@ const CONFIG = {
      un botón para abrirlo desde la pantalla de estado. */
   SHEET_URL: "",
   ACTIV: ["Inoculación de trigo", "Instalación en cosechadora", "Retiro y limpieza"],
-  FINCAS: ["Argelia", "Bolívar 1", "Bolívar 2", "Caicedonia", "Cajamarca", "El Bosque", "La Ceiba"],
+  FINCAS: ["Argelia", "Bolívar 1", "Bolívar 2", "Bolívar 3", "Caicedonia", "Cajamarca",
+           "El Bosque", "La Ceiba", "La Selva", "La Tesalia"],
   /* Tareas sueltas del laboratorio. Agrega o quita de esta lista lo que necesites;
      deja siempre "Otra ¿cuál?" al final para poder escribir una a mano. */
   TAREAS: ["Limpieza de cámaras - adultos", "Aseo laboratorio", "Fumigación", "Traslado adultos Sitotroga", "Otra ¿cuál?"],
 
-  /* Opciones que salen al tocar una casilla numérica: del 1 al 100.
-     Cambia estos dos números si quieres otro rango. Los decimales, el 0
-     y cualquier valor fuera del rango siguen entrando por "Otro número". */
-  OPCIONES: { desde: 1, hasta: 100 }
+  /* En insectos NO hay listas de numeros sugeridos: casi todo lleva decimales
+     (gramos de alimento, gramos de huevo), asi que al tocar una casilla
+     numerica se abre directamente el teclado para escribir el numero. */
 };
 /* Fotos de las etapas (miniaturas 108 px, ~12 KB en total, quedan dentro del archivo
    para que el celular las vea sin señal). Para cambiar una, reemplaza su data:image. */
@@ -277,7 +277,11 @@ const IMG = {
 const MODULO = "Cría de insectos";
 const OTROS = "Otro ¿cuál?";
 const GRUPOS_DEFAULT = ["General", "Experimental 1", "Experimental 2", "Experimental 3"];
-const INSTARES = [["1","Cambio a instar 1"],["2","Cambio a instar 2"],["3","Cambio a instar 3"]];
+/* [ valor que se guarda , texto del boton grande , texto del boton chico ] */
+const INSTARES = [["Instar 1","Cambio a instar 1","I1"],
+                  ["Instar 2","Cambio a instar 2","I2"],
+                  ["Instar 3","Cambio a instar 3","I3"],
+                  ["Cocón","Cambio a cocón","Coc"]];
 
 const LS_KEY = "insectos_crisopa_sitotroga_v1";
 let state = { fecha:null, responsable:"", camaras:[], grupos:GRUPOS_DEFAULT.slice(), entries:[] };
@@ -287,7 +291,11 @@ let cfgNueva = false;
 
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
 function load(){ try{ const r=localStorage.getItem(LS_KEY); if(r){ state=Object.assign({camaras:[],grupos:GRUPOS_DEFAULT.slice()}, JSON.parse(r)); return true; } }catch(e){} return false; }
-function today(){ return new Date().toISOString().slice(0,10); }
+/* Fecha de HOY en hora local. Con toISOString() pelado, despues de las 7 p.m.
+   el celular contestaba con la fecha de MANANA, porque UTC va 5 h adelante
+   de Colombia. Esto afectaba la fecha que sugiere la app al abrir sesion
+   y la fecha que lleva el id de cada registro. */
+function today(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function nowHM(){ return new Date().toTimeString().slice(0,5); }
 /* El id lleva la FECHA y un código fijo de este teléfono. Así dos personas que
    registran el mismo día —o la misma tanda dentro de 30 días— nunca chocan:
@@ -296,7 +304,7 @@ const DKEY = LS_KEY + "_dev";
 const DEV = (function(){ let d=null; try{ d=localStorage.getItem(DKEY); }catch(e){}
   if(!d){ d=Math.random().toString(36).slice(2,6); try{ localStorage.setItem(DKEY,d); }catch(e){} } return d; })();
 let _seq = 0;   // contador propio: dos ids del mismo teléfono NUNCA se repiten, ni en el mismo milisegundo
-function uid(){ return (state.fecha||today())+"-"+DEV+"-"+Date.now().toString(36)+"-"+((_seq++).toString(36))+Math.random().toString(36).slice(2,5); }
+function uid(){ return today()+"-"+DEV+"-"+Date.now().toString(36)+"-"+((_seq++).toString(36))+Math.random().toString(36).slice(2,5); }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 const app = document.getElementById("app");
 function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1400); }
@@ -361,52 +369,26 @@ function drawTBar(){
 /* =========================================================================
    SELECTOR NUMÉRICO: primero opciones rápidas, el teclado en "Otro número"
    ========================================================================= */
-let kp = { key:null, mode:'int', buf:'', label:'', onOk:null, modo:'opciones' };
+let kp = { key:null, mode:'int', buf:'', label:'', onOk:null };
 const kpEl = ()=>document.getElementById("kp");
 
-function sugerenciasDe(){
-  const a=(CONFIG.OPCIONES && CONFIG.OPCIONES.desde) || 1;
-  const b=(CONFIG.OPCIONES && CONFIG.OPCIONES.hasta) || 100;
-  const out=[]; for(let i=a;i<=b;i++) out.push(String(i));
-  return out;
-}
 function openKeypad(key,mode,label,onOk){
   const cur=(key&&draft&&draft[key]!=null&&draft[key]!=='')?String(draft[key]):'';
-  kp={key,mode:mode||'int',buf:cur,label:label||'',onOk:onOk||null,modo:'opciones'};
+  kp={key,mode:mode||'int',buf:cur,label:label||'',onOk:onOk||null,modo:'teclado'};
   drawPicker();
 }
 function closeKeypad(){ kpEl().innerHTML=""; }
 function commitVal(v){ const cb=kp.onOk, k=kp.key; closeKeypad(); if(cb) cb(v); else if(k&&draft) draft[k]=v; render(); }
-function drawPicker(){ if(kp.modo==='teclado') drawKeypad(); else drawOpciones(); }
+function drawPicker(){ drawKeypad(); }
 
-function drawOpciones(){
-  const sug=sugerenciasDe(kp.key,kp.mode);
-  kpEl().innerHTML = `<div class="kpmask" id="kpmask"></div><div class="kpsheet">
-    <div class="kplab">${kp.label}</div>
-    <button class="kpotro" id="kpotro">⌨ Otro número (decimales, 0, más de ${sug[sug.length-1]})</button>
-    <div class="optscroll"><div class="opts">
-      ${sug.map(v=>`<button class="opt ${String(kp.buf)===String(v)?'on':''}" data-v="${v}">${v}</button>`).join("")}
-    </div></div>
-    <div class="kprow tres"><button class="clr" id="kpclr">Vaciar</button><button class="cancel" id="kpcancel">Cancelar</button><button class="ok" id="kpok">Listo</button></div></div>`;
-  document.getElementById("kpmask").onclick=closeKeypad;
-  document.getElementById("kpcancel").onclick=closeKeypad;
-  document.getElementById("kpok").onclick=()=>commitVal(kp.buf);
-  document.getElementById("kpclr").onclick=()=>commitVal("");
-  document.getElementById("kpotro").onclick=()=>{ kp.modo='teclado'; drawPicker(); };
-  kpEl().querySelectorAll(".opts .opt").forEach(b=> b.onclick=()=>commitVal(b.dataset.v));
-  const sel=kpEl().querySelector(".opt.on");          // salta al valor que ya estaba puesto
-  if(sel && sel.scrollIntoView) sel.scrollIntoView({block:"center"});
-}
 function drawKeypad(){
   const dot = kp.mode==='dec' ? `<button data-k=".">.</button>` : `<button data-k="" style="visibility:hidden"></button>`;
   kpEl().innerHTML = `<div class="kpmask" id="kpmask"></div><div class="kpsheet">
     <div class="kplab">${kp.label}</div><div class="kpshow">${kp.buf||"0"}</div>
     <div class="kpgrid">${[1,2,3,4,5,6,7,8,9].map(d=>`<button data-k="${d}">${d}</button>`).join("")}${dot}<button data-k="0">0</button><button class="del" data-k="del">⌫</button></div>
-    <button class="kpotro" id="kpvolver" style="margin-top:10px">↩ Volver a las opciones</button>
     <div class="kprow"><button class="cancel" id="kpcancel">Cancelar</button><button class="ok" id="kpok">Listo</button></div></div>`;
   document.getElementById("kpmask").onclick=closeKeypad;
   document.getElementById("kpcancel").onclick=closeKeypad;
-  document.getElementById("kpvolver").onclick=()=>{ kp.modo='opciones'; drawPicker(); };
   document.getElementById("kpok").onclick=()=>commitVal(kp.buf);
   kpEl().querySelectorAll(".kpgrid button").forEach(b=> b.onclick=()=>{ const k=b.dataset.k;
     if(k==="del") kp.buf=kp.buf.slice(0,-1);
@@ -420,6 +402,36 @@ function numField(key,label,mode,cls,img){ const v=(draft&&draft[key]!=null?draf
 function bindNum(){ document.querySelectorAll(".numfield").forEach(el=> el.onclick=()=> openKeypad(el.dataset.key, el.dataset.mode, el.dataset.label)); }
 function bindTxt(){ document.querySelectorAll("[data-txt]").forEach(el=> el.oninput=()=>{ draft[el.dataset.txt]=el.value; }); }
 function bindSelects(){ document.querySelectorAll("select[data-key]").forEach(el=> el.onchange=()=>{ draft[el.dataset.key]=el.value; }); }
+
+/* =========================================================================
+   DESPLEGABLE CON "OTRA / OTRO ¿CUAL?"
+   Sirve para cualquier lista que pueda crecer con el tiempo: fincas, mixes,
+   actividades, estados, tipos de lavado. Si el operario escoge la ultima
+   opcion, aparece una casilla de texto y lo que escriba es lo que se guarda
+   en el campo. Mientras no escriba nada, el campo queda con el valor
+   "Otra ¿cual?", que es lo que revisa faltaOtro() al guardar.
+   ========================================================================= */
+function selOtro(key, label, lista){
+  const val = draft[key]||"";
+  const enLista = lista.indexOf(val)>=0;
+  const esOtro  = (val===OTROS) || (val!=="" && !enLista);
+  return `<label class="fl">${label}</label>
+    <select class="fin" data-selotro="${key}">${opts(lista.concat([OTROS]), esOtro?OTROS:val)}</select>
+    ${esOtro?`<input class="fin" style="margin-top:8px" data-txtotro="${key}" value="${esc(val===OTROS?"":val)}" placeholder="Escribe cual">`:''}`;
+}
+function bindSelOtro(alCambiar){
+  document.querySelectorAll("[data-selotro]").forEach(s=> s.onchange=()=>{
+    const k=s.dataset.selotro; draft[k]=s.value;
+    if(alCambiar) alCambiar(k, s.value);
+    render(); });
+  document.querySelectorAll("[data-txtotro]").forEach(t=> t.oninput=()=>{
+    draft[t.dataset.txtotro] = t.value.trim() || OTROS; });
+}
+/* true si alguno de los campos quedo en "Otra ¿cual?" sin escribir nada */
+function faltaOtro(){
+  for(let i=0;i<arguments.length;i++) if(draft[arguments[i]]===OTROS) return true;
+  return false;
+}
 
 /* =========================================================================
    RENDER
@@ -615,7 +627,7 @@ function renderCamarasLote(){
   for(let i=0;i<n;i++){
     const cam=draft["it"+i+"_camara"], ok=!!draft["it"+i+"_id"];
     const dup = cam!=="" && nums.filter(x=>x===String(cam)).length>1;
-    const chips = INSTARES.map(([v,l])=>`<button class="chip sm ${draft["it"+i+"_instar"]===v?'on':''}" data-ii="${i}" data-i="${v}">I${v}</button>`).join("");
+    const chips = INSTARES.map(([v,l,c])=>`<button class="chip sm ${draft["it"+i+"_instar"]===v?'on':''}" data-ii="${i}" data-i="${v}">${c}</button>`).join("");
     cards+=`<div class="camcard ${dup?'dup':''} ${ok?'ok':''}">
         <div class="cch">
           <button class="cnum" data-cnum="${i}">Cámara ${cam||'—'} ✎</button>
@@ -685,8 +697,8 @@ function renderCamarasLote(){
 function quitarCaja(idx){
   const n=parseInt(draft.n,10)||0, id=draft["it"+idx+"_id"];
   if(id) state.entries=state.entries.filter(x=>x.id!==id);
-  for(let i=idx;i<n-1;i++){ ["camara","alimento_g","instar","id"].forEach(k=>{ draft["it"+i+"_"+k]=draft["it"+(i+1)+"_"+k]; }); }
-  ["camara","alimento_g","instar","id"].forEach(k=> delete draft["it"+(n-1)+"_"+k]);
+  for(let i=idx;i<n-1;i++){ ["camara","alimento_g","instar","cocones","id"].forEach(k=>{ draft["it"+i+"_"+k]=draft["it"+(i+1)+"_"+k]; }); }
+  ["camara","alimento_g","instar","cocones","id"].forEach(k=> delete draft["it"+(n-1)+"_"+k]);
   draft.n=String(Math.max(0,n-1));
   sincronizarLote(); save(); render();
 }
@@ -758,14 +770,15 @@ function renderSitoHuevo(){
 function startSitoSiembra(){ editing=null; draft={actividad:CONFIG.ACTIV[0], trigo_kg:"", huevos_usados_g:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:""}; }
 function renderSitoSiembra(){
   app.innerHTML=`${head("Siembra de Sitotroga")}<div class="wrap">
-      <label class="fl">Actividad</label><select class="fin" data-key="actividad">${opts(CONFIG.ACTIV,draft.actividad)}</select>
+      ${selOtro('actividad','Actividad',CONFIG.ACTIV)}
       ${numField('trigo_kg','TRIGO (kg)','dec','sito')}
       ${numField('huevos_usados_g','HUEVOS USADOS (g)','dec','sito')}
       ${bloqueTiempo("sito_siembra","Siembra de Sitotroga")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar siembra'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Siembra de Sitotroga");
-  document.getElementById("save").onclick=()=>{ if(!draft.trigo_kg && !draft.huevos_usados_g){ toast("Pon trigo o huevos usados"); return; } push("sito_siembra"); tReset("sito_siembra"); toast(editing?"Cambios guardados ✓":"Siembra guardada ✓"); goHome(); };
+  document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Siembra de Sitotroga");
+  document.getElementById("save").onclick=()=>{ if(!draft.trigo_kg && !draft.huevos_usados_g){ toast("Pon trigo o huevos usados"); return; }
+    if(faltaOtro('actividad')){ toast("Escribe cuál es la actividad"); return; } push("sito_siembra"); tReset("sito_siembra"); toast(editing?"Cambios guardados ✓":"Siembra guardada ✓"); goHome(); };
 }
 
 /* ---------- LIBERACIÓN EN CAMPO ---------- */
@@ -780,17 +793,18 @@ function renderLiberacion(){
       <input class="fin" type="date" id="l_cria" value="${esc(draft.fecha_cria)}">
       <label class="fl">Fecha de liberación</label>
       <input class="fin" type="date" id="l_lib" value="${esc(draft.fecha_liberacion)}">
-      <label class="fl">Finca</label><select class="fin" data-key="finca">${opts(CONFIG.FINCAS,draft.finca)}</select>
+      ${selOtro('finca','Finca',CONFIG.FINCAS)}
       <label class="fl">Lote / parcela donde se liberó</label>
       <input class="fin" data-txt="lote_finca" value="${esc(draft.lote_finca)}" placeholder="Ej.: Lote 3, La Loma…">
       ${bloqueTiempo("liberacion","Liberación en campo")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar liberación'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Liberación en campo");
+  document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Liberación en campo");
   document.getElementById("l_cria").onchange=e=>{ draft.fecha_cria=e.target.value; };
   document.getElementById("l_lib").onchange=e=>{ draft.fecha_liberacion=e.target.value; };
   document.getElementById("save").onclick=()=>{
     if(!draft.huevos_g){ toast("Falta el huevo liberado (g)"); return; }
+    if(faltaOtro('finca')){ toast("Escribe cuál es la finca"); return; }
     if(!draft.lote_finca){ toast("Escribe el lote o parcela"); return; }
     if(!draft.fecha_liberacion) draft.fecha_liberacion=state.fecha||today();
     push("liberacion"); tReset("liberacion");
@@ -802,7 +816,7 @@ const TAGCOLOR={camara:"#016631",cosecha:"#0A7A3C",sito_huevo:"#8C6608",sito_sie
 const TAGNAME={camara:"cámara",cosecha:"cosecha",sito_huevo:"sito huevo",sito_siembra:"sito siembra",liberacion:"liberación"};
 function metaOf(e){
   const t = e.duracion_min ? ` · ⏱ ${fmtDur(+e.duracion_min)}${e.unidades_lote?` / ${e.unidades_lote} cám.`:''}` : '';
-  if(e.tipo==="camara") return `Cámara ${e.camara}${e.grupo?` · ${e.grupo}`:''} · alimento ${e.alimento_g||'—'} g${e.instar?` · cambio a instar ${e.instar}`:''}${e.larvas_iniciales?` · ${e.larvas_iniciales} larvas`:''}${e.adultos_obtenidos?` · ${e.adultos_obtenidos} adultos`:''}${t}`;
+  if(e.tipo==="camara") return `Cámara ${e.camara}${e.grupo?` · ${e.grupo}`:''} · alimento ${e.alimento_g||'—'} g${e.instar?` · ${e.instar}`:''}${e.larvas_iniciales?` · ${e.larvas_iniciales} larvas`:''}${e.adultos_obtenidos?` · ${e.adultos_obtenidos} adultos`:''}${t}`;
   if(e.tipo==="cosecha") return `${e.grupo} · ${e.camaras_cosechadas||'—'} cámaras · ${e.gramos||'—'} g${t}`;
   if(e.tipo==="sito_huevo"){ const p=[]; if(e.ing_cosecha)p.push("cosecha +"+e.ing_cosecha); if(e.ing_compra)p.push("compra +"+e.ing_compra); if(e.egr_alimento)p.push("alimento -"+e.egr_alimento); if(e.egr_inoculo)p.push("inóculo -"+e.egr_inoculo); if(e.egr_descarte)p.push("descarte -"+e.egr_descarte); if(e.egr_otro_cant)p.push((e.egr_otro_detalle||"otro")+" -"+e.egr_otro_cant); return (p.join(" · ")||"—")+t; }
   if(e.tipo==="sito_siembra") return `${e.actividad} · trigo ${e.trigo_kg||'—'} kg · huevos ${e.huevos_usados_g||'—'} g${t}`;
