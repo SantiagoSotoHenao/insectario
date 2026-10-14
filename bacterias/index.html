@@ -188,7 +188,7 @@
 <div id="diag"></div>
 <script>
 /* Verificador: si algo falla, se ve en pantalla y no queda una página en blanco. */
-window.__APP = "bacterias"; window.__VER = "2026-08-14.1"; window.__fallas = [];
+window.__APP = "bacterias"; window.__VER = "2026-10-14.1"; window.__fallas = [];
 function mostrarFalla(titulo, detalle){
   window.__fallas.push(titulo + " :: " + detalle);
   var d = document.getElementById("fatal");
@@ -264,6 +264,21 @@ const CONFIG = {
 };
 const MODULO = "Bioinsumos (bacterias)";
 const OTROS = "Otro ¿cuál?";
+const NO_DET = "No determinado";
+/* registros de producción que llevan la columna "semana" */
+const TIPOS_SEMANA = {lote:1, cosecha:1};
+function semanaDe(e){ return TIPOS_SEMANA[e.tipo] ? semanaISO(e.fecha) : ""; }
+/* SEMANA DEL AÑO (ISO 8601: semanas de lunes a domingo, 1 a 52/53).
+   No se pregunta: se calcula sola desde la fecha del registro y viaja en la
+   columna "semana" de las hojas de producción. */
+function semanaISO(f){
+  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(f||"")); if(!m) return "";
+  const d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3])); const dia=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-dia);
+  const ini=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil(((d-ini)/86400000+1)/7);
+}
+
 CONFIG.ALIMENTO = ["Biorgánica/Orgánica", "Núcleo", OTROS];
 CONFIG.INSUMOS = CONFIG.MIX.concat(["Biorgánica/Orgánica", "Núcleo", "Peróxido", "Jabón enzimático", "Jabón en polvo", OTROS]);
 const DESINF = "Desinfección bioreact";
@@ -597,7 +612,7 @@ function renderCosecha(){
       ${selOtro('mix','Mix cosechado',CONFIG.MIX)}
       ${numField('l_cosechado','VOLUMEN COSECHADO (L)','dec')}
       ${numField('descarte','DESCARTE (L)','dec')}
-      ${selOtro('finca','Finca destino',CONFIG.FINCAS)}
+      ${selOtro('finca','Finca destino',CONFIG.FINCAS.concat([NO_DET]))}
       ${selOtro('estado','Estado',["Entregado","En laboratorio"])}
       ${bloqueTiempo("cosecha","Cosechar lote")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
@@ -692,7 +707,7 @@ function renderEnvio(){
   }
   app.innerHTML=`${editHead("Envío / despacho")}<div class="wrap">
       <div class="p">Un mismo despacho puede llevar varios mix y varios lotes. Agrega una tarjeta por cada combinación.</div>
-      ${selOtro('finca','Finca destino',CONFIG.FINCAS)}
+      ${selOtro('finca','Finca destino',CONFIG.FINCAS.concat([NO_DET]))}
       <label class="fl">Remisión / guía (opcional)</label><input class="fin" data-txt="remision" value="${esc(draft.remision)}" placeholder="N.º de remisión">
       <div class="sec" style="margin-top:14px">Producto despachado</div>
       ${cards}
@@ -833,7 +848,7 @@ function archivarSubidos(){
 /* =========================================================================
    SALIDA: CSV, hoja de TIEMPOS y Apps Script
    ========================================================================= */
-const HEADERS=["id","tipo","fecha",
+const HEADERS=["id","tipo","fecha","semana",
   "lote","mix","l_inoculo","cantidad_esperada","alimento","alimento_detalle","alimento_kg",
   "l_cosechado","descarte","finca","estado",
   "envio_id","litros","remision",
@@ -845,6 +860,7 @@ const HEADERS=["id","tipo","fecha",
   "nota","responsable","timestamp"];
 /* Una sola función traduce registro → columna, la usan el CSV y el XLSX. */
 function valOf(e,c){
+  if(c==="semana") return semanaDe(e);
   if(c==="timestamp") return e.ts||"";
   if(c==="total_bidones") return e.total||"";
   return (e[c]!=null && e[c]!==undefined) ? e[c] : "";
@@ -853,8 +869,8 @@ function rowOf(e){ return HEADERS.map(c=>valOf(e,c)); }
 
 /* Cada pestaña del libro con sus columnas propias, igual que el Sheet de análisis. */
 const HOJAS=[
-  {tipo:"lote",       nombre:"Bact_siembra",    cols:["id","fecha","lote","mix","l_inoculo","cantidad_esperada","alimento","alimento_detalle","alimento_kg","duracion_min","nota","responsable","timestamp"]},
-  {tipo:"cosecha",    nombre:"Bact_cosecha",    cols:["id","fecha","lote","mix","l_cosechado","descarte","finca","estado","duracion_min","nota","responsable","timestamp"]},
+  {tipo:"lote",       nombre:"Bact_siembra",    cols:["id","fecha","semana","lote","mix","l_inoculo","cantidad_esperada","alimento","alimento_detalle","alimento_kg","duracion_min","nota","responsable","timestamp"]},
+  {tipo:"cosecha",    nombre:"Bact_cosecha",    cols:["id","fecha","semana","lote","mix","l_cosechado","descarte","finca","estado","duracion_min","nota","responsable","timestamp"]},
   {tipo:"envio",      nombre:"Bact_envios",     cols:["id","envio_id","fecha","mix","lote","litros","finca","remision","duracion_min","nota","responsable","timestamp"]},
   {tipo:"bidon",      nombre:"Bact_bidones",    cols:["id","fecha","total_bidones","danados","limpios","sin_lavar","incompletos","finca","duracion_min","nota","responsable","timestamp"]},
   {tipo:"lavado",     nombre:"Bact_lavado",     cols:["id","fecha","tipo_lavado","unidades","ml_peroxido","lote","hora_inicio","hora_fin","duracion_min","nota","responsable","timestamp"]},
@@ -1078,7 +1094,7 @@ function syncSheets(){
   const pend=unsynced();
   if(!pend.length){ toast("Nada pendiente"); return; }
   if(!CONFIG.SCRIPT_URL && !puenteNativo()){ toast("Falta la URL del Apps Script → usa XLSX"); return; }
-  const payload=pend.map(e=>{ const o=Object.assign({},e); delete o.synced; o.total_bidones=o.total||""; return o; }).concat(tiemposDe(pend));
+  const payload=pend.map(e=>{ const o=Object.assign({},e); delete o.synced; o.total_bidones=o.total||""; const w=semanaDe(o); if(w!=="") o.semana=w; return o; }).concat(tiemposDe(pend));
   toast("Enviando…");
   enviarPayload(payload)
     .then(res=>{ pend.forEach(e=>e.synced=true); save();
