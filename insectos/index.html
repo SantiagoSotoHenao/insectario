@@ -144,6 +144,12 @@
   .okflag { font-size:11px; font-weight:800; color:var(--green); }
   /* --- añadidos v3 --- */
   .camwrap { position:relative; }
+  .serblk { border:1.5px solid var(--green); border-radius:14px; padding:12px; margin:10px 0; background:#fff; }
+  .serblk .sn { font-weight:800; font-size:16px; }
+  .serblk .sm2 { font-size:12.5px; color:#555; margin:3px 0 8px; }
+  .serblk .row { display:flex; gap:8px; }
+  .serblk .row .bigbtn { margin:0; flex:1; }
+  details.cerr summary { font-weight:800; font-size:13px; color:#555; margin:14px 0 6px; cursor:pointer; }
   .camwrap .cam { width:100%; }
   .camx { position:absolute; top:-7px; left:-7px; width:24px; height:24px; border-radius:12px; border:none;
           background:#B0402A; color:#fff; font-size:13px; font-weight:800; line-height:1; padding:0;
@@ -193,7 +199,7 @@
 <div id="diag"></div>
 <script>
 /* Verificador: si algo falla, se ve en pantalla y no queda una página en blanco. */
-window.__APP = "insectos"; window.__VER = "2026-08-14.1"; window.__fallas = [];
+window.__APP = "insectos"; window.__VER = "2026-10-14.11"; window.__fallas = [];
 function mostrarFalla(titulo, detalle){
   window.__fallas.push(titulo + " :: " + detalle);
   var d = document.getElementById("fatal");
@@ -258,6 +264,12 @@ const CONFIG = {
            "El Bosque", "La Ceiba", "La Selva", "La Tesalia"],
   /* Tareas sueltas del laboratorio. Agrega o quita de esta lista lo que necesites;
      deja siempre "Otra ¿cuál?" al final para poder escribir una a mano. */
+  /* Insumos que se gastan en "Otras tareas". "Ninguno" va primero; "Otro ¿cuál?" lo agrega la app sola. */
+  /* Liberación en campo */
+  AREA_UNIDADES: ["ha", "m²"],
+  CONC_UNIDADES: ["huevos/ha", "g/ha", "huevos/árbol", "huevos/g de sustrato"],
+  INSUMOS: ["Ninguno", "Miel", "Levadura", "Polen", "Vitamina E"],
+  UNIDADES: ["g", "mL", "und"],
   TAREAS: ["Limpieza de cámaras - adultos", "Aseo laboratorio", "Fumigación", "Traslado adultos Sitotroga", "Otra ¿cuál?"],
 
   /* En insectos NO hay listas de numeros sugeridos: casi todo lleva decimales
@@ -269,28 +281,46 @@ const CONFIG = {
 const IMG = {
   larva: "data:image/jpeg;base64,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",
   cocon: "data:image/jpeg;base64,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",
-  huevo: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHCAkIBgoJCAkMCwoMDxoRDw4ODx8WGBMaJSEnJiQhJCMpLjsyKSw4LCMkM0Y0OD0/QkNCKDFITUhATTtBQj//2wBDAQsMDA8NDx4RER4/KiQqPz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz//wAARCABsAGwDASIAAhEBAxEB/8QAGgAAAwEBAQEAAAAAAAAAAAAAAgMEAQUABv/EACgQAAICAgIBAwQCAwAAAAAAAAABAhEDIQQxEhMiQQUyUWFCcRRSkf/EABgBAAMBAQAAAAAAAAAAAAAAAAECAwAE/8QAHREBAQEBAAEFAAAAAAAAAAAAAAECEQMSITFBUf/aAAwDAQACEQMRAD8APKr0goY1GOiyWBdtCkqOKzgEuJngOfYHzsUHopJBdmb+BuGLbtoaTrNx4/mgM3Gb9zR0McIm5oXCkdEnDOPJU6MURuaLim2noGG1ZHc5Q4yMR2OJsINvSHwx/obGbb1oUouyiMNBRhXwFRcx3peSJ8nElfkijHnj8sdKScLRKyUHJnimn9oiap0y/LLTIXtkdSQtA210zY5pR76PSiLoEvAWQyqStMZjyu6b0QRdSsrhtWi2ddNKrUYy+FQSxwX8V/wTilTopr8FTM8F+DPEOnRiWwsGj1ByjSAd2FnHfKblUUVY+TkUKZBginkbKjiu6naLJknJPYMNr9nj1+OxO0OtaM8U1+zHli1pgqexhZKOx3He2gG00ApOL9o2byiuRbi+w5MMzXasrx8lSVJpMtNymlWsxIRHK72xsMibopKJtaPeKDjtHmEXzPHW2Uk8GozRRRw8Q715NVsGXRtUeatAFO8Te0FDHOTpFmLHeMfhwe66L5zLDRJ/jyS9wtw8ZHXz46hpHNzRfYN4kns1hLQCuMhi+0yrIFPw5U/a+x8sscSuTIKaYjmTn6ap6K58n1TSuvj+oxeo20g39Qj/AKs4vHuOJfsemmtmvl19D2AeOTVooxNuPuW0UY8FR2ivBxl20NMdgenjnSW9IKGGcq9ro7Cw4/mKDUYrQZ4v1uJcXHdLRXDEl8BKUV8o31Y/krzhmZMalGqObyMFWq0dT1I12IyuEl3Zr7s4Eo+MmjEWcrGk7RIcm5wtjWvIXOFpoclo3xJAmjGlX4CoKVeVIyikK+hWOKPOaghWXNS0Q587apHZqzKtvFObmRj12Rz5eRvTomcm2ZZza8lqV0a8+R/yYUORki1bsUk30b4tC+qhLTeTzWoe10xWDk5ZRdsm5C2kOwqsa/oa7tikpjuT27Akgz0logYWJOS0N9KUlSQHGdZPH4ZfFFsYmoEjlTwTjlbfR7xOpPF5rojnhkpVRS4/AuenTlpkslbKZoRNbB5fngaJlGjKQcgaJJji6RvYCGQNzoxNmhvylpILF9iKJU+0mBL4SRqdljJSTihRjdISmgsbrKqOnF6OVi+9f2dSPSL+H4FRhVsb6Se2hfGWyo6DP//Z",
+  huevo: "data:image/jpeg;base64,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",
+  huevo_sito: "data:image/jpeg;base64,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",
   sitotroga: "data:image/jpeg;base64,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",
   adulto: "data:image/jpeg;base64,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"
 };
 
 const MODULO = "Cría de insectos";
 const OTROS = "Otro ¿cuál?";
+const NO_DET = "No determinado";
+/* registros de producción que llevan la columna "semana" */
+const TIPOS_SEMANA = {camara:1, cosecha:1, sito_huevo:1};
+function semanaDe(e){ if(!TIPOS_SEMANA[e.tipo]) return "";
+  return semanaISO(e.tipo==="sito_huevo" && e.fecha_cosecha ? e.fecha_cosecha : e.fecha); }
+/* SEMANA DEL AÑO (ISO 8601: semanas de lunes a domingo, 1 a 52/53).
+   No se pregunta: se calcula sola desde la fecha del registro y viaja en la
+   columna "semana" de las hojas de producción. */
+function semanaISO(f){
+  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(f||"")); if(!m) return "";
+  const d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3])); const dia=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-dia);
+  const ini=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil(((d-ini)/86400000+1)/7);
+}
+
 const GRUPOS_DEFAULT = ["General", "Experimental 1", "Experimental 2", "Experimental 3"];
 /* [ valor que se guarda , texto del boton grande , texto del boton chico ] */
-const INSTARES = [["Instar 1","Cambio a instar 1","I1"],
+const INSTARES = [["Huevo","Huevo (inicio)","Hue"],
+                  ["Instar 1","Cambio a instar 1","I1"],
                   ["Instar 2","Cambio a instar 2","I2"],
                   ["Instar 3","Cambio a instar 3","I3"],
                   ["Cocón","Cambio a cocón","Coc"]];
 
 const LS_KEY = "insectos_crisopa_sitotroga_v1";
-let state = { fecha:null, responsable:"", camaras:[], grupos:GRUPOS_DEFAULT.slice(), entries:[] };
+let state = { fecha:null, responsable:"", camaras:[], grupos:GRUPOS_DEFAULT.slice(), series:{}, entries:[] };
 let view = "config";
 let draft = null, editing = null, curCam = null;
 let cfgNueva = false;
 
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
-function load(){ try{ const r=localStorage.getItem(LS_KEY); if(r){ state=Object.assign({camaras:[],grupos:GRUPOS_DEFAULT.slice()}, JSON.parse(r)); return true; } }catch(e){} return false; }
+function load(){ try{ const r=localStorage.getItem(LS_KEY); if(r){ state=Object.assign({camaras:[],grupos:GRUPOS_DEFAULT.slice(),series:{}}, JSON.parse(r)); if(!state.series) state.series={}; return true; } }catch(e){} return false; }
 /* Fecha de HOY en hora local. Con toISOString() pelado, despues de las 7 p.m.
    el celular contestaba con la fecha de MANANA, porque UTC va 5 h adelante
    de Colombia. Esto afectaba la fecha que sugiere la app al abrir sesion
@@ -339,7 +369,7 @@ function bloqueTiempo(id,label){
   return `<div class="sec">⏱ Tiempo de la tarea (opcional)</div>
       <div class="clock ${t.run?'run':''}" data-clock="${id}">${fmtClock(ms)}</div>
       ${ctrl}
-      ${numField('duracion_min','DURACIÓN (min) — la llena el cronómetro o la pones tú','int')}`;
+      ${numField('duracion_min','DURACIÓN (min) — la llena el cronómetro o la pones tú','dec')}`;
 }
 function bindTiempo(label){
   document.querySelectorAll("[data-tact]").forEach(b=> b.onclick=()=>{
@@ -428,6 +458,9 @@ function bindSelOtro(alCambiar){
     draft[t.dataset.txtotro] = t.value.trim() || OTROS; });
 }
 /* true si alguno de los campos quedo en "Otra ¿cual?" sin escribir nada */
+/* Si se escogió "Otro ¿cuál?" y no se escribió cuál, se guarda el valor indicado
+   (por defecto "Otro"). Nada de esto bloquea el guardado. */
+function otroSinNombre(k, valor){ if(draft[k]===OTROS) draft[k]=(valor===undefined?"Otro":valor); }
 function faltaOtro(){
   for(let i=0;i<arguments.length;i++) if(draft[arguments[i]]===OTROS) return true;
   return false;
@@ -442,7 +475,12 @@ function route(){
   if(v==="config") return renderConfig();
   if(v==="home") return renderHome();
   if(v==="camaras") return renderCamaras();
-  if(v==="camaras_lote") return renderCamarasLote();
+  if(v==="serie") return renderSerie();
+  if(v==="cosecha_menu") return renderCosechaMenu();
+  if(v==="camaras_menu") return renderCamarasMenu();
+  if(v==="camara_general") return renderCamGeneral();
+  if(v==="general_lista") return renderGeneralLista();
+  if(v==="serie_general") return renderSerieGeneral();
   if(v==="camara_entry") return renderCamaraEntry();
   if(v==="cosecha") return renderCosecha();
   if(v==="grupos") return renderGrupos();
@@ -499,9 +537,9 @@ function renderHome(){
     <div class="topbar"><div class="grow"><div class="idbox">Jornada ${state.fecha}</div><div class="sub">${esc(state.responsable)||"—"}</div></div><button class="iconbtn" id="cfg">⚙</button></div>
     <div class="wrap">
       <div class="sec">¿Qué vas a registrar?</div>
-      <button class="seg" data-v="camaras"><span class="ico"><img src="${IMG.larva}" alt=""></span> Cámaras de larvas (alimento) <span class="arw">${n('camara')||''} ›</span></button>
-      <button class="seg" data-v="cosecha"><span class="ico"><img src="${IMG.adulto}" alt=""></span> Cosecha huevos Chrysoperla <span class="arw">${n('cosecha')||''} ›</span></button>
-      <button class="seg" data-v="sito_huevo"><span class="ico"><img src="${IMG.sitotroga}" alt=""></span> Huevos de Sitotroga <span class="arw">${n('sito_huevo')||''} ›</span></button>
+      <button class="seg" data-v="camaras_menu"><span class="ico"><img src="${IMG.larva}" alt=""></span> Cámaras de larvas <span class="arw">${n('camara')||''} ›</span></button>
+      <button class="seg" data-v="cosecha_menu"><span class="ico"><img src="${IMG.huevo}" alt=""></span> Cosecha huevos Chrysoperla <span class="arw">${n('cosecha')||''} ›</span></button>
+      <button class="seg" data-v="sito_huevo"><span class="ico"><img src="${IMG.huevo_sito}" alt=""></span> Huevos de Sitotroga <span class="arw">${n('sito_huevo')||''} ›</span></button>
       <button class="seg" data-v="sito_siembra"><span class="ico"><img src="${IMG.sitotroga}" alt=""></span> Siembra de Sitotroga <span class="arw">${n('sito_siembra')||''} ›</span></button>
       <button class="seg" data-v="liberacion"><span class="ico"><img src="${IMG.adulto}" alt=""></span> Liberación en campo <span class="arw">${n('liberacion')||''} ›</span></button>
       <button class="seg" data-v="otra"><span class="ico">✽</span> Otras tareas <span class="arw">${n('otra')||''} ›</span></button>
@@ -514,23 +552,43 @@ function renderHome(){
 /* ---------- CÁMARAS DE LARVAS ---------- */
 function renderCamaras(){
   let cells="";
-  state.camaras.forEach(c=>{ const done=state.entries.some(e=>e.tipo==='camara'&&e.fecha===state.fecha&&String(e.camara)===String(c));
+  const abiertas=seriesAbiertas(), enSerie={};
+  abiertas.forEach(k=> state.series[k].camaras.forEach(c=> enSerie[String(c)]=true));
+  const bloques=abiertas.map(k=>{ const r=state.series[k], d=diasDesde(r.inicio), est=estadioSerie(r);
+    const hoy=state.entries.some(e=>e.lote_id===k && e.fecha===state.fecha);
+    return `<div class="serblk"><div class="sn">${esc(r.nombre)||'Serie sin nombre'} ${hoy?'<span class="okflag">✓ hoy</span>':''}</div>
+      <div class="sm2">Inició ${r.inicio}${d!==""?` · día ${d}`:''}${est?` · ${est}`:''}<br>Cámaras ${r.camaras.join(" · ")}</div>
+      <div class="row"><button class="bigbtn primary mini" data-abrir="${k}">Abrir serie</button><button class="bigbtn ghost mini" data-cerrar="${k}">Cerrar serie</button></div></div>`; }).join("");
+  const cerradas=Object.keys(state.series).filter(k=>state.series[k].cerrada);
+  const listaCerr=cerradas.map(k=>{ const r=state.series[k];
+    return `<div class="serblk" style="opacity:.75"><div class="sn">${esc(r.nombre)||'Serie sin nombre'}</div>
+      <div class="sm2">Inició ${r.inicio} · cámaras ${r.camaras.join(" · ")}</div>
+      <div class="row"><button class="bigbtn ghost mini" data-reabrir="${k}">Reabrir</button><button class="bigbtn ghost mini" data-olvidar="${k}">Quitar de la lista</button></div></div>`; }).join("");
+  state.camaras.filter(c=>!enSerie[String(c)]).forEach(c=>{ const done=state.entries.some(e=>e.tipo==='camara'&&e.fecha===state.fecha&&String(e.camara)===String(c));
     cells+=`<div class="camwrap"><button class="cam ${done?'done':''}" data-cam="${c}">Cámara ${c}${done?'<span class="badge">✓</span>':''}</button>
       <button class="camx" data-delcam="${c}" title="Quitar esta cámara de la lista">✕</button></div>`; });
   cells+=`<button class="cam add" id="addcam">＋<br>cámara</button>`;
   app.innerHTML=`
-    <div class="topbar"><button class="iconbtn" id="back">◀</button><div class="grow"><div class="idbox">Cámaras de larvas</div><div class="sub">Alimento e instar · ${state.fecha}</div></div></div>
+    <div class="topbar"><button class="iconbtn" id="back">◀</button><div class="grow"><div class="idbox">Cámaras de larvas · detallada</div><div class="sub">Series y cámaras · ${state.fecha}</div></div></div>
     <div class="wrap">
-      <button class="bigbtn primary" id="lote" style="margin-top:0">🧺 Trabajar varias cámaras a la vez</button>
-      <div class="sec" style="margin-top:16px">O toca una cámara para anotarla sola</div>
-      ${state.camaras.length?'':'<div class="p">Aún no hay cámaras sueltas. Usa el botón de arriba o agrega una con ＋.</div>'}
+      <button class="bigbtn primary" id="lote" style="margin-top:0">🧺 Serie: varias cámaras a la vez</button>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 8px">Serie nueva: escribes desde qué cámara hasta cuál (ej.: de la 60 a la 69) y le pones nombre.</div>
+      ${abiertas.length?`<div class="sec" style="margin-top:14px">Series en curso · toca “Abrir serie” para el registro de la semana</div>${bloques}`:''}
+      ${cerradas.length?`<details class="cerr"><summary>Series cerradas (${cerradas.length})</summary>${listaCerr}</details>`:''}
+      <div class="sec" style="margin-top:16px">Cámaras sueltas · toca una para anotarla sola</div>
+      ${state.camaras.some(c=>!enSerie[String(c)])?'':'<div class="p">No hay cámaras sueltas. Agrega una con ＋.</div>'}
       <div class="cams">${cells}</div></div>${footer("")}`;
-  document.getElementById("back").onclick=goHome; bindFooter();
-  document.getElementById("lote").onclick=()=> openKeypad("n_camaras","int","¿Cuántas cámaras vas a trabajar?", (buf)=>{
-    const n=parseInt(buf,10);
-    if(!n || n<1){ toast("Pon un número de cámaras"); return; }
-    if(n>60){ toast("Máximo 60 cámaras por tanda"); return; }
-    startLoteCamaras(n); view="camaras_lote"; render(); });
+  document.getElementById("back").onclick=()=>{ view="camaras_menu"; render(); }; bindFooter();
+  document.getElementById("lote").onclick=()=> pedirRango("camara");
+  document.querySelectorAll("[data-abrir]").forEach(b=> b.onclick=()=> abrirSerie(b.dataset.abrir));
+  document.querySelectorAll("[data-cerrar]").forEach(b=> b.onclick=()=>{ const r=state.series[b.dataset.cerrar];
+    if(confirm("¿Cerrar la serie "+(r.nombre||"")+"?\n\nSus cámaras vuelven a quedar sueltas. Los registros no se tocan y la puedes reabrir.")){ r.cerrada=true; save(); render(); } });
+  document.querySelectorAll("[data-reabrir]").forEach(b=> b.onclick=()=>{ const id=b.dataset.reabrir, r=state.series[id];
+    Object.keys(state.series).forEach(k=>{ const o=state.series[k]; if(k===id||o.cerrada) return;
+      o.camaras=o.camaras.filter(c=> r.camaras.map(String).indexOf(String(c))<0); if(!o.camaras.length) delete state.series[k]; });
+    r.cerrada=false; save(); render(); });
+  document.querySelectorAll("[data-olvidar]").forEach(b=> b.onclick=()=>{
+    if(confirm("¿Quitar esta serie cerrada de la lista del celular?\n\nNo borra nada del Sheet.")){ delete state.series[b.dataset.olvidar]; save(); render(); } });
   document.getElementById("addcam").onclick=()=> openKeypad("camara","int","Número de cámara nueva", (buf)=>{ const num=parseInt(buf,10); if(num){ if(!state.camaras.map(String).includes(String(num))){ state.camaras.push(num); state.camaras.sort((a,b)=>(+a)-(+b)); save(); toast("Cámara "+num+" agregada"); } else toast("Ya existe"); } });
   /* ✕ sobre la cámara: la quita SOLO de esta lista del celular. No toca la hoja
      de cálculo ni los registros ya subidos; es para cuando uno se equivoca al crearla. */
@@ -548,17 +606,20 @@ function renderCamaras(){
   document.querySelectorAll(".cam[data-cam]").forEach(b=> b.onclick=()=>{ curCam=b.dataset.cam;
     const ex=state.entries.find(e=>e.tipo==='camara'&&e.fecha===state.fecha&&String(e.camara)===String(curCam));
     if(ex){ editing=ex.id; draft=clone(ex); if(draft.instar==null)draft.instar=""; if(draft.duracion_min==null)draft.duracion_min=""; }
-    else { editing=null; draft={camara:curCam, alimento_g:"", instar:"", cocones:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:""}; }
+    else { editing=null; draft={modo:"detallada", n_camaras:"1", camara:curCam, huevos_inoculados_g:"", alimento_g:"", instar:"", cocones:"", adultos_obtenidos:"", larvas_iniciales:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:""}; }
     view="camara_entry"; render(); });
 }
 
 function renderCamaraEntry(){
   const chips = INSTARES.map(([v,l])=>`<button class="chip ${draft.instar===v?'on':''}" data-i="${v}">${l}</button>`).join("");
   app.innerHTML=`${head("Cámara "+curCam)}<div class="wrap">
-      ${numField('alimento_g','ALIMENTO CONSUMIDO HOY (g)','dec','',IMG.huevo)}
-      <div class="sec conimg"><img src="${IMG.cocon}" alt="">Cambio de instar (si aplica)</div>
+      ${numField('huevos_inoculados_g','HUEVO DE CHRYSOPERLA INOCULADO (g)','dec','',IMG.huevo)}
+      <div class="p" style="font-size:12.5px;margin:-2px 0 10px">Solo el día que se siembra el huevo de crisopa en esta cámara. Es el punto de partida para calcular supervivencia.</div>
+      ${numField('alimento_g','ALIMENTO · HUEVO DE SITOTROGA HOY (g)','dec','',IMG.huevo_sito)}
+      <div class="sec conimg"><img src="${IMG.cocon}" alt="">Estadio actual (si cambió)</div>
       <div class="chips">${chips}</div>
-      ${numField('cocones','COCONES COSECHADOS (opcional)','int','',IMG.cocon)}
+      ${numField('cocones','COCONES COSECHADOS (opcional)','dec','',IMG.cocon)}
+      <div class="grid2">${numField('larvas_iniciales','LARVAS CONTADAS (opcional)','dec','sm',IMG.larva)}${numField('adultos_obtenidos','ADULTOS OBTENIDOS (opcional)','dec','sm',IMG.adulto)}</div>
       <div class="p" style="font-size:12.5px;margin:-2px 0 10px">Solo al final del ciclo, cuando se recogen las pupas de esta cámara.</div>
       ${bloqueTiempo("cam_"+curCam,"Cámara "+curCam)}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
@@ -567,67 +628,175 @@ function renderCamaraEntry(){
   document.getElementById("back").onclick=()=>{ editing=null; draft=null; view="camaras"; render(); };
   bindNum(); bindTxt(); bindTiempo("Cámara "+curCam);
   document.querySelectorAll(".chip").forEach(c=> c.onclick=()=>{ const v=c.dataset.i; draft.instar=(draft.instar===v?"":v); render(); });
-  document.getElementById("save").onclick=()=>{ if(!draft.alimento_g && !draft.instar && !draft.cocones){ toast("Pon alimento, instar o cocones"); return; } push("camara"); tReset("cam_"+curCam); toast("Guardado ✓"); editing=null; draft=null; view="camaras"; render(); };
+  document.getElementById("save").onclick=()=>{ if(!draft.alimento_g && !draft.instar && !draft.cocones && !draft.huevos_inoculados_g && !draft.adultos_obtenidos && !draft.larvas_iniciales){ toast("Pon al menos un dato"); return; } push("camara"); tReset("cam_"+curCam); toast("Guardado ✓"); editing=null; draft=null; view="camaras"; render(); };
   if(editing) document.getElementById("del").onclick=()=>{ if(confirm("¿Eliminar?")){ state.entries=state.entries.filter(x=>x.id!==editing); save(); editing=null; draft=null; view="camaras"; render(); } };
 }
 
-/* ---------- CÁMARAS EN TANDA — cada caja se guarda sola ---------- */
-function startLoteCamaras(n){
-  editing=null;
-  draft={ lote_id:uid(), n:String(n), alimento_todas:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:"",
-          grupo:(state.grupos[0]||"General"), larvas_iniciales:"", adultos_obtenidos:"" };
-  for(let i=0;i<n;i++){ draft["it"+i+"_camara"]=String(i+1); draft["it"+i+"_alimento_g"]=""; draft["it"+i+"_instar"]=""; draft["it"+i+"_cocones"]=""; draft["it"+i+"_id"]=""; }
+/* =========================================================================
+   SERIES — varias cámaras a la vez (cámaras de larvas y cosecha detallada)
+   Una serie es un conjunto de cámaras con nombre propio (grupo, tratamiento,
+   experimento o día de inoculación). Cada cámara es una fila propia en el
+   Sheet y se guarda sola apenas tiene un dato.
+   · Valores "para todas": escriben el mismo valor en cada cámara.
+   · Nombre de la serie y anotación: van en TODAS las filas.
+   · Insumos (huevo inoculado, alimento) se pueden poner "para todas";
+     los resultados (huevo cosechado, cocones, adultos) son de cada cámara
+     y la serie muestra su SUMA.
+   · En "general", los resultados del grupo (cocones, larvas contadas, adultos)
+     se escriben como TOTAL y se dividen por igual entre las cámaras.
+   · Datos de la serie completa (tiempo, calibración…): solo en la
+     primera fila, para no sumarlos varias veces.
+   La columna interna lote_id identifica la serie (se dejó con ese nombre
+   para no tocar los encabezados que ya existen en el Sheet).
+   ========================================================================= */
+const SERIES={
+  camara:{ tipo:"camara", titulo:"Cámaras de larvas", timer:"camaras_lote", vuelve:"camaras", agregaLista:true, estadio:true,
+    campos:[
+      {k:"huevos_inoculados_g", lab:"HUEVO CRISOPA (g)", img:"huevo",      todas:true},
+      {k:"alimento_g",          lab:"SITOTROGA (g)",     img:"huevo_sito", todas:true},
+      {k:"cocones",             lab:"COCONES",           img:"cocon",      total:true, divide:true},
+      /* larvas_iniciales: la columna se conserva; en la app se llama "larvas contadas" */
+      {k:"larvas_iniciales",    lab:"LARVAS CONTADAS",   img:"larva",      total:true, divide:true},
+      {k:"adultos_obtenidos",   lab:"ADULTOS OBTENIDOS", img:"adulto",     total:true, divide:true} ],
+    serie:[],
+    serieNota:"",
+    extra:()=>({modo:"detallada", n_camaras:"1"}) },
+  cosecha:{ tipo:"cosecha", titulo:"Cosecha detallada", timer:"cosecha_serie", vuelve:"cosecha_menu", agregaLista:false, estadio:false,
+    campos:[
+      {k:"gramos",         lab:"HUEVO COSECHADO (g)", img:"huevo",  total:true},
+      {k:"vivos_total",    lab:"VIVOS · TOTAL",       img:"adulto", total:true},
+      {k:"vivos_hembra",   lab:"VIVOS · HEMBRAS",     img:"adulto", total:true},
+      {k:"muertos_total",  lab:"MUERTOS · TOTAL",                   total:true},
+      {k:"muertos_hembra", lab:"MUERTOS · HEMBRAS",                 total:true} ],
+    serie:[ {k:"muestra_g",lab:"MUESTRA PESADA (g)"}, {k:"muestra_huevos",lab:"HUEVOS CONTADOS EN LA MUESTRA"} ],
+    serieNota:"Calibración huevos por gramo (opcional): pesa una pizca de huevo y cuenta cuántos tiene.",
+    /* los datos de cada cámara son resultados: NO hay "para todas"; el total de la serie es la suma */
+    extra:()=>({modo:"detallada", camaras_cosechadas:"1"}) }
+};
+let serieKind=null;
+/* Machos = total − hembras (se calcula en el libro). Los adultos que no se
+   pudieron sexar quedan dentro de "machos", sabiendo que pueden ser hembras. */
+function hembrasMal(o){
+  if(o.vivos_hembra!=="" && o.vivos_hembra!=null && o.vivos_total!=="" && o.vivos_total!=null && +o.vivos_hembra > +o.vivos_total) return "las hembras vivas superan el total de vivos";
+  if(o.muertos_hembra!=="" && o.muertos_hembra!=null && o.muertos_total!=="" && o.muertos_total!=null && +o.muertos_hembra > +o.muertos_total) return "las hembras muertas superan el total de muertos";
+  return "";
 }
-function cajasDelLote(){ return draft&&draft.lote_id ? state.entries.filter(e=>e.lote_id===draft.lote_id) : []; }
-/* la bitácora y el tiempo son de la tanda entera: viajan en la primera cámara guardada */
-function sincronizarLote(){
-  const del=cajasDelLote();
+function SD(){ return SERIES[serieKind]; }
+/* pide el rango: desde la cámara A hasta la cámara B (ej.: 60 a 69) */
+function pedirRango(kind,vista){
+  openKeypad("desde","int","Serie · desde la cámara N.º",(a)=>{
+    const d=parseInt(a,10);
+    if(isNaN(d)){ toast("Pon el número de la primera cámara"); return; }
+    setTimeout(()=> openKeypad("hasta","int","Serie · hasta la cámara N.º (empieza en "+d+")",(b)=>{
+      const h=parseInt(b,10);
+      if(isNaN(h) || h<d){ toast("La última cámara debe ser "+d+" o mayor"); return; }
+      if(h-d+1>60){ toast("Máximo 60 cámaras por serie"); return; }
+      const nums=[]; for(let c=d;c<=h;c++) nums.push(String(c));
+      startSerie(kind,nums); view=vista||"serie"; render(); }),0);
+  });
+}
+function startSerie(kind,nums){
+  serieKind=kind; editing=null;
+  const sd=SERIES[kind];
+  draft={ lote_id:uid(), n:String(nums.length), grupo:"", nota:"", duracion_min:"", hora_inicio:"", hora_fin:"" };
+  sd.campos.forEach(c=> draft["all_"+c.k]="");
+  sd.serie.forEach(c=> draft[c.k]="");
+  nums.forEach((c,i)=>{ draft["it"+i+"_camara"]=c; draft["it"+i+"_id"]=""; draft["it"+i+"_instar"]="";
+    sd.campos.forEach(f=> draft["it"+i+"_"+f.k]=""); });
+}
+function keysCaja(){ return ["camara","id","instar"].concat(SD().campos.map(f=>f.k)); }
+function cajasDeSerie(){ const sd=SD(); return draft&&draft.lote_id ? state.entries.filter(e=>e.lote_id===draft.lote_id && e.tipo===sd.tipo && e.fecha===state.fecha) : []; }
+/* Registro de series de larvas: nombre, fecha de inicio, cámaras y estadio de
+   cada una. Una cámara pertenece a UNA serie abierta: si entra a otra serie,
+   sale de la anterior (nuevo ciclo). */
+function registrarSerie(){
+  if(serieKind!=="camara" || !draft) return;
+  const id=draft.lote_id, n=parseInt(draft.n,10)||0;
+  let r=state.series[id];
+  if(!r){ if(!cajasDeSerie().length) return; r=state.series[id]={nombre:"", inicio:state.fecha, camaras:[], est:{}, cerrada:false}; }
+  const nums=[]; for(let i=0;i<n;i++){ const c=String(draft["it"+i+"_camara"]||""); if(c) nums.push(c);
+    const ins=draft["it"+i+"_instar"]; if(c && ins) r.est[c]=ins; }
+  if(!nums.length){ delete state.series[id]; return; }
+  r.nombre=draft.grupo||""; r.camaras=nums;
+  Object.keys(state.series).forEach(k=>{ if(k===id) return; const o=state.series[k]; if(o.cerrada) return;
+    o.camaras=o.camaras.filter(c=> nums.indexOf(String(c))<0);
+    if(!o.camaras.length) delete state.series[k]; });
+}
+function seriesAbiertas(){ return Object.keys(state.series).filter(k=>!state.series[k].cerrada)
+  .sort((a,b)=> (state.series[b].inicio||"").localeCompare(state.series[a].inicio||"")); }
+function diasDesde(f){ const a=Date.parse(f), b=Date.parse(state.fecha); return (isNaN(a)||isNaN(b))? "" : Math.round((b-a)/86400000); }
+function estadioSerie(r){ const v=r.camaras.map(c=>r.est[c]).filter(Boolean); if(!v.length) return "";
+  const cuenta={}; v.forEach(x=>cuenta[x]=(cuenta[x]||0)+1);
+  const top=Object.keys(cuenta).sort((a,b)=>cuenta[b]-cuenta[a])[0];
+  return cuenta[top]===r.camaras.length ? top : top+" (la mayoría)"; }
+/* abre una serie que ya existe, con sus cámaras y lo que ya se anotó HOY */
+function abrirSerie(id,vista){
+  const r=state.series[id]; if(!r) return;
+  startSerie("camara", r.camaras.map(String));
+  draft.lote_id=id; draft.grupo=r.nombre||"";
+  const hoy=cajasDeSerie(), sd=SD();
+  const n=parseInt(draft.n,10)||0;
+  for(let i=0;i<n;i++){
+    const e=hoy.find(x=>String(x.camara)===String(draft["it"+i+"_camara"])); if(!e) continue;
+    draft["it"+i+"_id"]=e.id; draft["it"+i+"_instar"]=e.instar||"";
+    sd.campos.forEach(f=> draft["it"+i+"_"+f.k]=e[f.k]||""); }
+  const pos={}; r.camaras.forEach((c,i)=> pos[String(c)]=i);
+  hoy.sort((a,b)=> (pos[String(a.camara)]??999)-(pos[String(b.camara)]??999));
+  if(hoy.length){ const p=hoy[0]; ["nota","duracion_min","hora_inicio","hora_fin"].concat(sd.serie.map(c=>c.k)).forEach(k=> draft[k]=p[k]||""); }
+  view=vista||"serie"; render();
+}
+function sincronizarSerie(){
+  const sd=SD(), del=cajasDeSerie();
+  const pos={}; for(let i=0;i<(parseInt(draft.n,10)||0);i++) pos[String(draft["it"+i+"_camara"]||"")]=i;
+  del.sort((a,b)=> (pos[String(a.camara)]??999)-(pos[String(b.camara)]??999));
   del.forEach((e,k)=>{
-    /* la etiqueta de grupo va en TODAS las filas (es un rótulo, no una cantidad) */
-    e.grupo         = draft.grupo||"";
-    /* las cantidades del lote van SOLO en la primera fila, para no sumarlas varias veces */
-    e.larvas_iniciales   = k===0 ? (draft.larvas_iniciales||"") : "";
-    e.adultos_obtenidos  = k===0 ? (draft.adultos_obtenidos||"") : "";
-    e.nota          = k===0 ? (draft.nota||"") : "";
+    e.grupo = draft.grupo||"";                    // rótulo: en todas las filas
+    e.nota  = draft.nota||"";                     // la anotación aplica a TODAS las cámaras de la serie
+    sd.serie.forEach(c=> e[c.k] = k===0 ? (draft[c.k]||"") : "");
     e.duracion_min  = k===0 ? (draft.duracion_min||"") : "";
     e.hora_inicio   = k===0 ? (draft.hora_inicio||"") : "";
     e.hora_fin      = k===0 ? (draft.hora_fin||"") : "";
     e.unidades_lote = k===0 ? String(del.length) : "";
     e.synced=false;
   });
+  registrarSerie();
 }
-function guardarCaja(i,silencio){
-  const n=parseInt(draft.n,10)||0;
-  const cam=String(draft["it"+i+"_camara"]||""), al=draft["it"+i+"_alimento_g"]||"", ins=draft["it"+i+"_instar"]||"";
-  const coc=draft["it"+i+"_cocones"]||"";
-  const id=draft["it"+i+"_id"];
-  if(!cam){ if(!silencio) toast("Esa caja no tiene número de cámara"); return false; }
+function guardarCajaSerie(i,silencio){
+  const sd=SD(), n=parseInt(draft.n,10)||0;
+  const cam=String(draft["it"+i+"_camara"]||""), id=draft["it"+i+"_id"];
+  if(!cam){ if(!silencio) toast("Esa cámara no tiene número"); return false; }
   for(let j=0;j<n;j++){ if(j!==i && String(draft["it"+j+"_camara"]||"")===cam){ if(!silencio) toast("La cámara "+cam+" está repetida"); return false; } }
-  if(!al && !ins && !coc){                            // se vació: se retira el registro
+  const vals={}; sd.campos.forEach(f=> vals[f.k]=draft["it"+i+"_"+f.k]||"");
+  const errH=hembrasMal(vals); if(errH){ toast("Cámara "+cam+": "+errH); return false; }
+  if(sd.estadio) vals.instar=draft["it"+i+"_instar"]||"";
+  const vacio=Object.keys(vals).every(k=>!vals[k]);
+  if(vacio){                                          // se vació: se retira el registro
     if(id){ state.entries=state.entries.filter(x=>x.id!==id); draft["it"+i+"_id"]=""; }
-  } else if(id){                                      // ya existía: se actualiza
-    const e=state.entries.find(x=>x.id===id);
-    if(e){ e.camara=cam; e.alimento_g=al; e.instar=ins; e.cocones=coc; e.synced=false; e.ts=new Date().toISOString(); }
-  } else {                                            // primero dato de esta caja: se crea
-    const e={ id:uid(), tipo:"camara", fecha:state.fecha, responsable:state.responsable,
-              ts:new Date().toISOString(), synced:false, lote_id:draft.lote_id,
-              camara:cam, alimento_g:al, instar:ins, cocones:coc, grupo:draft.grupo||"",
-              larvas_iniciales:"", adultos_obtenidos:"",
-              nota:"", duracion_min:"", hora_inicio:"", hora_fin:"", unidades_lote:"" };
-    state.entries.push(e); draft["it"+i+"_id"]=e.id;
-    if(!state.camaras.map(String).includes(cam)){ state.camaras.push(isNaN(+cam)?cam:+cam); state.camaras.sort((a,b)=>(+a)-(+b)); }
+  } else {
+    let e = id ? state.entries.find(x=>x.id===id) : null;
+    if(e){ Object.assign(e, vals, {camara:cam, synced:false, ts:new Date().toISOString()}); }
+    else {
+      e=Object.assign({ id:uid(), tipo:sd.tipo, fecha:state.fecha, responsable:state.responsable,
+            ts:new Date().toISOString(), synced:false, lote_id:draft.lote_id, camara:cam, grupo:draft.grupo||"",
+            nota:"", duracion_min:"", hora_inicio:"", hora_fin:"", unidades_lote:"" }, sd.extra(), draft.modoFila?{modo:draft.modoFila}:{}, vals);
+      sd.serie.forEach(c=> e[c.k]="");
+      state.entries.push(e); draft["it"+i+"_id"]=e.id;
+      if(sd.agregaLista && !state.camaras.map(String).includes(cam)){ state.camaras.push(isNaN(+cam)?cam:+cam); state.camaras.sort((a,b)=>(+a)-(+b)); }
+    }
   }
-  sincronizarLote(); save(); return true;
+  sincronizarSerie(); save(); return true;
 }
-function renderCamarasLote(){
-  sincronizarLote(); save();
-  const n=parseInt(draft.n,10)||0, guardadas=cajasDelLote().length;
+function renderSerie(){
+  const sd=SD(); draft.modoFila=""; if(draft.vuelve==="general_lista") draft.vuelve=""; sincronizarSerie(); save();
+  const n=parseInt(draft.n,10)||0, guardadas=cajasDeSerie().length;
   const nums=[]; for(let i=0;i<n;i++) nums.push(String(draft["it"+i+"_camara"]||""));
+  const fld=(key,c)=> numField(key,c.lab,'dec','sm',c.img?IMG[c.img]:null);
+  const estTodas = (v)=> n>0 && nums.every((x,i)=> draft["it"+i+"_instar"]===v);
   let cards="";
   for(let i=0;i<n;i++){
     const cam=draft["it"+i+"_camara"], ok=!!draft["it"+i+"_id"];
     const dup = cam!=="" && nums.filter(x=>x===String(cam)).length>1;
-    const chips = INSTARES.map(([v,l,c])=>`<button class="chip sm ${draft["it"+i+"_instar"]===v?'on':''}" data-ii="${i}" data-i="${v}">${c}</button>`).join("");
+    const chips = sd.estadio ? `<div class="chips">${INSTARES.map(([v,l,c])=>`<button class="chip sm ${draft["it"+i+"_instar"]===v?'on':''}" data-ii="${i}" data-i="${v}">${c}</button>`).join("")}</div>` : "";
     cards+=`<div class="camcard ${dup?'dup':''} ${ok?'ok':''}">
         <div class="cch">
           <button class="cnum" data-cnum="${i}">Cámara ${cam||'—'} ✎</button>
@@ -635,100 +804,310 @@ function renderCamarasLote(){
           ${dup?'<span class="editflag" style="color:#B0402A">repetida</span>':''}
           <button class="rm" data-rm="${i}">✕</button>
         </div>
-        ${numField('it'+i+'_alimento_g','ALIMENTO (g)','dec','sm',IMG.huevo)}
-        <div class="chips">${chips}</div>
-        ${numField('it'+i+'_cocones','COCONES (opcional)','int','sm')}
+        ${chips}
+        <div class="grid2">${sd.campos.map(c=>fld('it'+i+'_'+c.k,c)).join("")}</div>
       </div>`;
   }
-  app.innerHTML=`${head("Cámaras · tanda de "+n)}<div class="wrap">
-      <div class="p">Cada cámara se guarda sola apenas le pones un dato; no hay que esperar al final. Toca “Cámara N ✎” si el número real es otro.</div>
-      <label class="fl">Grupo / tratamiento de esta tanda</label>
-      <select class="fin" id="lt_grupo">${opts(state.grupos, draft.grupo||state.grupos[0]||"General")}</select>
-      ${numField('alimento_todas','MISMO ALIMENTO PARA LAS '+n+' CÁMARAS (g)','dec','',IMG.huevo)}
-      <div class="sec" style="margin-top:10px">Cierre del lote (opcional, para medir eficiencia)</div>
-      <div class="grid2">${numField('larvas_iniciales','LARVAS AL INICIAR','int','sm')}${numField('adultos_obtenidos','ADULTOS OBTENIDOS','int','sm')}</div>
-      <div class="p" style="font-size:12.5px;margin:-2px 0 10px">Con estos dos datos el libro calcula solo la mortalidad y los <b>gramos de alimento por adulto</b>. Llénalos cuando cierres el lote.</div>
-      ${bloqueTiempo("camaras_lote","Cámaras de larvas (tanda)")}
+  const todas = sd.campos.filter(c=>c.todas);
+  const r2 = x=> Math.round(x*100)/100;
+  const totales = sd.campos.filter(c=>c.total).map(c=>{
+      let suma=0, hay=false;
+      for(let i=0;i<n;i++){ const v=draft["it"+i+"_"+c.k]; if(v!=="" && v!=null && !isNaN(+v)){ suma+=+v; hay=true; } }
+      return hay ? (c.lab.replace(/\s*\(g\)$/,"")+": "+r2(suma)+(/\(g\)$/.test(c.lab)?" g":"")) : ""; })
+    .filter(Boolean).join(" · ");
+  const rango = nums.length ? (nums[0]===nums[nums.length-1] ? nums[0] : nums[0]+"–"+nums[nums.length-1]) : "—";
+  app.innerHTML=`${head(sd.titulo+" · serie "+rango)}<div class="wrap">
+      <div class="p">Cada cámara se guarda sola apenas le pones un dato. Toca “Cámara N ✎” si el número real es otro.</div>
+      <label class="fl">Nombre de la serie (grupo, tratamiento o experimento)</label>
+      <input class="fin" id="s_grupo" list="dl_grupos" value="${esc(draft.grupo)}" placeholder="Ej.: 60 · Inoculación 14-oct · Dieta A">
+      <datalist id="dl_grupos">${state.grupos.map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+      ${sd.serie.length?`<div class="sec" style="margin-top:12px">Datos de toda la serie</div>
+      <div class="grid2">${sd.serie.map(c=>fld(c.k,c)).join("")}</div>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 10px">${sd.serieNota}</div>`:''}
+      ${(sd.estadio || todas.length)?`<div class="sec" style="margin-top:12px">Lo mismo para TODAS las cámaras (${n})</div>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 8px">Se copia a cada cámara. Después puedes corregir una sola abajo.</div>`:''}
+      ${sd.estadio?`<div class="sec conimg" style="margin-top:4px"><img src="${IMG.cocon}" alt="">Estadio actual de toda la serie</div>
+      <div class="chips">${INSTARES.map(([v,l,c])=>`<button class="chip sm ${estTodas(v)?'on':''}" data-allest="${v}">${c}</button>`).join("")}</div>`:''}
+      ${todas.length?`<div class="grid2">${todas.map(c=>fld('all_'+c.k,c)).join("")}</div>`:''}
+      ${totales?`<div class="sec" style="margin-top:14px">Total de la serie (suma de las cámaras)</div><div class="p" style="margin:0 0 8px"><b>${totales}</b></div>`:''}
       <div class="sec" style="margin-top:14px">Cámaras · ${guardadas} de ${n} guardadas</div>
       ${cards}
-      <button class="bigbtn ghost" id="addbox">＋ Agregar otra caja</button>
-      <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
-      <button class="bigbtn primary" id="fin">✓ Terminar tanda</button></div>`;
-  document.getElementById("back").onclick=terminarTanda;
-  bindNum(); bindTxt(); bindTiempo("Cámaras de larvas (tanda)");
+      <button class="bigbtn ghost" id="addbox">＋ Agregar otra cámara</button>
+      ${bloqueTiempo(sd.timer, sd.titulo+" (serie)")}
+      <label class="fl">Anotación (aplica a todas las cámaras de la serie)</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
+      <button class="bigbtn primary" id="fin">✓ Terminar serie</button></div>`;
+  document.getElementById("back").onclick=terminarSerie;
+  bindNum(); bindTxt(); bindTiempo(sd.titulo+" (serie)");
 
-  /* la bitácora se va guardando mientras se escribe */
   const nt=document.querySelector('[data-txt="nota"]');
-  if(nt) nt.oninput=()=>{ draft.nota=nt.value; sincronizarLote(); save(); };
-  const gsel=document.getElementById("lt_grupo");
-  if(gsel) gsel.onchange=()=>{ draft.grupo=gsel.value; sincronizarLote(); save(); };
+  if(nt) nt.oninput=()=>{ draft.nota=nt.value; sincronizarSerie(); save(); };
+  const gi=document.getElementById("s_grupo");
+  gi.oninput=()=>{ draft.grupo=gi.value; sincronizarSerie(); save(); };
+  gi.onchange=()=>{ const g=(gi.value||"").trim(); draft.grupo=g; if(g && !state.grupos.includes(g)) state.grupos.push(g); sincronizarSerie(); save(); };
 
-  /* mismo alimento para todas: al escoger el valor se aplica y se guarda cada caja */
-  const bulk=document.querySelector('[data-key="alimento_todas"]');
-  if(bulk) bulk.onclick=()=> openKeypad("alimento_todas","dec","Mismo alimento para las "+n+" cámaras (g)",(v)=>{
-      draft.alimento_todas=v;
-      let k=0; for(let i=0;i<n;i++){ draft["it"+i+"_alimento_g"]=v; if(guardarCaja(i,true)) k++; }
-      toast(v? ("Se asignaron "+v+" g a "+k+" cámaras") : "Alimento borrado en la tanda"); });
+  /* valores para todas: solo insumos (los resultados no se reparten) */
+  todas.forEach(c=>{
+    const el=document.querySelector('.numfield[data-key="all_'+c.k+'"]');
+    if(el) el.onclick=()=> openKeypad("all_"+c.k,"dec",c.lab+" · para las "+n+" cámaras",(v)=>{
+      draft["all_"+c.k]=v; let k=0;
+      for(let i=0;i<n;i++){ draft["it"+i+"_"+c.k]=v; if(guardarCajaSerie(i,true)) k++; }
+      toast(v? (c.lab+": "+v+" en "+k+" cámaras") : (c.lab+" borrado en la serie")); });
+  });
+  document.querySelectorAll("[data-allest]").forEach(b=> b.onclick=()=>{
+    const v=b.dataset.allest, quitar=estTodas(v);
+    for(let i=0;i<n;i++){ draft["it"+i+"_instar"]=quitar?"":v; guardarCajaSerie(i,true); }
+    toast(quitar? "Estadio borrado en la serie" : ("Toda la serie en "+v)); render(); });
 
-  /* alimento de una sola caja */
-  ["larvas_iniciales","adultos_obtenidos"].forEach(k=>{
-    const el=document.querySelector('.numfield[data-key="'+k+'"]');
-    if(el) el.onclick=()=> openKeypad(k,"int",el.dataset.label,(v)=>{ draft[k]=v; sincronizarLote(); save(); });
+  /* datos de la serie completa */
+  sd.serie.forEach(c=>{
+    const el=document.querySelector('.numfield[data-key="'+c.k+'"]');
+    if(el) el.onclick=()=> openKeypad(c.k,"dec",c.lab,(v)=>{ draft[c.k]=v; sincronizarSerie(); save(); });
   });
 
+  /* valores de una sola cámara */
   document.querySelectorAll(".numfield[data-key^='it']").forEach(el=> el.onclick=()=>{
       const i=+el.dataset.key.match(/^it(\d+)_/)[1];
-      openKeypad(el.dataset.key,el.dataset.mode,el.dataset.label,(v)=>{ draft[el.dataset.key]=v; guardarCaja(i); }); });
-
+      openKeypad(el.dataset.key,"dec",el.dataset.label,(v)=>{ draft[el.dataset.key]=v; guardarCajaSerie(i); }); });
+  document.querySelectorAll("[data-ii]").forEach(c=> c.onclick=()=>{ const i=+c.dataset.ii, v=c.dataset.i;
+      draft["it"+i+"_instar"]=(draft["it"+i+"_instar"]===v?"":v); guardarCajaSerie(i); render(); });
   document.querySelectorAll("[data-cnum]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.cnum;
       openKeypad("it"+i+"_camara","int","N.º real de esta cámara",(v)=>{
         if(!v){ toast("La cámara necesita número"); return; }
-        draft["it"+i+"_camara"]=v; guardarCaja(i); }); });
-
-  document.querySelectorAll("[data-ii]").forEach(c=> c.onclick=()=>{ const i=+c.dataset.ii, v=c.dataset.i;
-      draft["it"+i+"_instar"]=(draft["it"+i+"_instar"]===v?"":v); guardarCaja(i); render(); });
-
-  document.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{ quitarCaja(+b.dataset.rm); });
-  document.getElementById("addbox").onclick=()=>{ const i=n;
-      draft["it"+i+"_camara"]=String(i+1); draft["it"+i+"_alimento_g"]=""; draft["it"+i+"_instar"]=""; draft["it"+i+"_cocones"]=""; draft["it"+i+"_id"]="";
-      draft.n=String(n+1); render(); };
-  document.getElementById("fin").onclick=terminarTanda;
+        draft["it"+i+"_camara"]=v; guardarCajaSerie(i); }); });
+  document.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{ quitarCajaSerie(+b.dataset.rm); });
+  document.getElementById("addbox").onclick=()=>{
+    const i=n, mx=nums.reduce((m,x)=> isNaN(+x)?m:Math.max(m,+x), 0);
+    draft["it"+i+"_camara"]=String(mx+1); draft["it"+i+"_id"]=""; draft["it"+i+"_instar"]="";
+    sd.campos.forEach(f=> draft["it"+i+"_"+f.k]="");
+    draft.n=String(n+1); render(); };
+  document.getElementById("fin").onclick=terminarSerie;
 }
-function quitarCaja(idx){
-  const n=parseInt(draft.n,10)||0, id=draft["it"+idx+"_id"];
+function quitarCajaSerie(idx){
+  const n=parseInt(draft.n,10)||0, id=draft["it"+idx+"_id"], ks=keysCaja();
   if(id) state.entries=state.entries.filter(x=>x.id!==id);
-  for(let i=idx;i<n-1;i++){ ["camara","alimento_g","instar","cocones","id"].forEach(k=>{ draft["it"+i+"_"+k]=draft["it"+(i+1)+"_"+k]; }); }
-  ["camara","alimento_g","instar","cocones","id"].forEach(k=> delete draft["it"+(n-1)+"_"+k]);
+  for(let i=idx;i<n-1;i++){ ks.forEach(k=>{ draft["it"+i+"_"+k]=draft["it"+(i+1)+"_"+k]; }); }
+  ks.forEach(k=> delete draft["it"+(n-1)+"_"+k]);
   draft.n=String(Math.max(0,n-1));
-  sincronizarLote(); save(); render();
+  sincronizarSerie(); save(); render();
 }
-function terminarTanda(){
-  const g=cajasDelLote().length;
-  sincronizarLote(); save(); tReset("camaras_lote");
-  toast(g? (g+" cámaras guardadas ✓") : "Tanda cerrada sin registros");
-  draft=null; view="camaras"; render();
+function terminarSerie(){
+  const sd=SD(), g=cajasDeSerie().length;
+  const g0=(draft.grupo||"").trim(); if(g0 && !state.grupos.includes(g0)) state.grupos.push(g0);
+  if(sd.tipo==="camara" && g && g0 && state.entries.some(e=>esRapida(e) && e.fecha===state.fecha && (e.grupo||"")===g0))
+    alert("Ojo: hoy ya hay un REGISTRO RÁPIDO del grupo "+g0+".\n\nEl registro rápido es el total del grupo; si también quedan las filas por cámara, el libro contará el alimento dos veces. Borra uno de los dos en REGISTROS.");
+  if(sd.tipo==="cosecha" && g && g0 && state.entries.some(e=>e.tipo==="cosecha" && e.modo!=="detallada" && e.fecha===state.fecha && (e.grupo||"")===g0))
+    alert("Ojo: hoy ya hay una cosecha GENERAL del grupo "+g0+".\n\nLa general es el total del grupo; si también queda la detallada, el libro contará el huevo dos veces. Borra una de las dos en REGISTROS.");
+  sincronizarSerie(); save(); tReset(sd.timer);
+  toast(g? (g+" cámaras guardadas ✓") : "Serie cerrada sin registros");
+  const back=draft.vuelve||sd.vuelve; draft=null; serieKind=null; view=back; render();
+}
+/* ---------- CÁMARAS DE LARVAS: registro rápido, general o detallada ---------- */
+/* Fila "agregada" (registro rápido): no tiene número de cámara y lleva n_camaras.
+   Incluye las filas modo "general" sin cámara de las versiones 2026-10-14.5 a .7. */
+function esRapida(e){ return e.tipo==="camara" && (e.modo==="rapido" || (e.modo==="general" && !e.camara)); }
+function renderCamarasMenu(){
+  const cam=state.entries.filter(e=>e.tipo==='camara');
+  const k=(f)=>{ const x=cam.filter(f).length; return x||''; };
+  app.innerHTML=`${head("Cámaras de larvas")}<div class="wrap">
+      <div class="sec">¿Cómo vas a registrar las cámaras?</div>
+      <button class="seg" id="l_rap"><span class="ico">⚡</span> Registro rápido <span class="arw">${k(esRapida)} ›</span></button>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 12px">Una sola fila para un grupo de cámaras: cuántas cámaras y el <b>total</b> de huevo inoculado, Sitotroga y cocones.</div>
+      <button class="seg" id="l_gen"><span class="ico"><img src="${IMG.larva}" alt=""></span> General <span class="arw">${k(e=>e.modo==="general" && e.camara)} ›</span></button>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 12px">Escribes <b>cuánto por cámara</b> y se pone igual en todas las cámaras del grupo: una fila por cámara. El grupo queda para abrirlo después en general o en detallada.</div>
+      <button class="seg" id="l_det"><span class="ico"><img src="${IMG.cocon}" alt=""></span> Detallada <span class="arw">${k(e=>!esRapida(e) && e.modo!=="general")} ›</span></button>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 12px">Cámara por cámara: series en curso, cámaras sueltas y valores para todas o para cada una.</div>
+    </div>${footer("")}`;
+  document.getElementById("back").onclick=goHome; bindFooter();
+  document.getElementById("l_rap").onclick=()=>{ startCamGeneral(); view="camara_general"; render(); };
+  document.getElementById("l_gen").onclick=()=>{ view="general_lista"; render(); };
+  document.getElementById("l_det").onclick=()=>{ view="camaras"; render(); };
+}
+/* ---------- GENERAL: escoger un grupo existente o crear uno nuevo ---------- */
+function renderGeneralLista(){
+  const abiertas=seriesAbiertas();
+  const bloques=abiertas.map(k=>{ const r=state.series[k], d=diasDesde(r.inicio), est=estadioSerie(r);
+    const hoy=state.entries.some(e=>e.lote_id===k && e.fecha===state.fecha);
+    return `<div class="serblk"><div class="sn">${esc(r.nombre)||'Grupo sin nombre'} ${hoy?'<span class="okflag">✓ hoy</span>':''}</div>
+      <div class="sm2">Inició ${r.inicio}${d!==""?` · día ${d}`:''}${est?` · ${est}`:''}<br>Cámaras ${r.camaras.join(" · ")}</div>
+      <div class="row"><button class="bigbtn primary mini" data-gabrir="${k}">Abrir en general</button><button class="bigbtn ghost mini" data-dabrir="${k}">Abrir en detallada</button></div></div>`; }).join("");
+  app.innerHTML=`${head("Cámaras de larvas · general")}<div class="wrap">
+      <button class="bigbtn primary" id="gnuevo" style="margin-top:0">＋ Grupo nuevo (desde la cámara… hasta la cámara…)</button>
+      ${abiertas.length?`<div class="sec" style="margin-top:14px">Grupos en curso</div>${bloques}`:'<div class="p" style="margin-top:12px">Aún no hay grupos. Crea uno con el botón de arriba.</div>'}
+    </div>${footer("")}`;
+  document.getElementById("back").onclick=()=>{ view="camaras_menu"; render(); }; bindFooter();
+  document.getElementById("gnuevo").onclick=()=> pedirRango("camara","serie_general");
+  document.querySelectorAll("[data-gabrir]").forEach(b=> b.onclick=()=> abrirSerie(b.dataset.gabrir,"serie_general"));
+  document.querySelectorAll("[data-dabrir]").forEach(b=> b.onclick=()=> abrirSerie(b.dataset.dabrir,"serie"));
+}
+/* ---------- GENERAL: un valor por cámara, igual para todas ---------- */
+function renderSerieGeneral(){
+  const sd=SD(); draft.modoFila="general"; draft.vuelve="general_lista";
+  sincronizarSerie(); save();
+  const n=parseInt(draft.n,10)||0, guardadas=cajasDeSerie().length;
+  const nums=[]; for(let i=0;i<n;i++) nums.push(String(draft["it"+i+"_camara"]||""));
+  const todas=sd.campos.filter(c=>c.todas);
+  /* si todas las cámaras tienen hoy el mismo valor, se muestra; si no, "varía" */
+  const varia={};
+  todas.forEach(c=>{ const v=nums.map((x,i)=>draft["it"+i+"_"+c.k]||"");
+    const iguales=v.every(x=>x===v[0]); draft["all_"+c.k]= iguales ? v[0] : ""; varia[c.k]= !iguales; });
+  const divide=sd.campos.filter(c=>c.divide);
+  divide.forEach(c=>{ let sc=0, hay=false; for(let i=0;i<n;i++){ const v=draft["it"+i+"_"+c.k]; if(v!=="" && v!=null && !isNaN(+v)){ sc+=+v; hay=true; } }
+    draft["grp_"+c.k] = hay ? String(Math.round(sc*100)/100) : ""; });
+  const estTodas=(v)=> n>0 && nums.every((x,i)=> draft["it"+i+"_instar"]===v);
+  const estVaria = n>0 && !INSTARES.some(([v])=>estTodas(v)) && nums.some((x,i)=>draft["it"+i+"_instar"]);
+  const rango = nums.length ? (nums[0]===nums[nums.length-1] ? nums[0] : nums[0]+"–"+nums[nums.length-1]) : "—";
+  app.innerHTML=`${head("General · grupo "+rango)}<div class="wrap">
+      <label class="fl">Nombre del grupo (serie, tratamiento o experimento)</label>
+      <input class="fin" id="s_grupo" list="dl_grupos" value="${esc(draft.grupo)}" placeholder="Ej.: 60 · Inoculación 14-oct · Dieta A">
+      <datalist id="dl_grupos">${state.grupos.map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+      <div class="p" style="font-size:12.5px;margin:6px 0 0">Cámaras ${nums.join(" · ")} · ${guardadas} de ${n} con datos hoy</div>
+      <div class="sec" style="margin-top:12px">Valor POR CÁMARA · se pone igual en las ${n} cámaras</div>
+      <div class="sec conimg" style="margin-top:4px"><img src="${IMG.cocon}" alt="">Estadio actual</div>
+      <div class="chips">${INSTARES.map(([v,l,c])=>`<button class="chip sm ${estTodas(v)?'on':''}" data-allest="${v}">${c}</button>`).join("")}</div>
+      ${estVaria?'<div class="p" style="font-size:12.5px;margin:-4px 0 6px">El estadio varía entre cámaras; tocar uno lo pone en todas.</div>':''}
+      <div class="grid2">${todas.map(c=>numField('all_'+c.k,c.lab.replace(" (g)"," POR CÁMARA (g)"),'dec','sm',c.img?IMG[c.img]:null)).join("")}</div>
+      ${todas.some(c=>varia[c.k])?'<div class="p" style="font-size:12.5px;margin:-4px 0 6px">“—” en una casilla que ya tenía datos = el valor <b>varía</b> entre cámaras (se cambió en detallada). Escribir un valor lo pone igual en todas.</div>':''}
+      <div class="sec" style="margin-top:12px">TOTAL DEL GRUPO · se divide por igual entre las ${n} cámaras</div>
+      <div class="grid2">${divide.map(c=>numField('grp_'+c.k,c.lab+' · TOTAL','dec','sm',c.img?IMG[c.img]:null)).join("")}</div>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 10px">Ej.: 609 cocones en 4 cámaras → 152.25 en cada una. La casilla muestra siempre la suma del grupo. Si en detallada había valores distintos por cámara, se reemplazan por la división.</div>
+      ${bloqueTiempo(sd.timer, "Cámaras de larvas (general)")}
+      <label class="fl">Anotación (aplica a todas las cámaras del grupo)</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
+      <button class="bigbtn primary" id="fin">✓ Terminar</button>
+      <button class="bigbtn ghost mini" id="adet">Abrir este grupo en detallada</button></div>`;
+  document.getElementById("back").onclick=terminarSerie;
+  bindNum(); bindTxt(); bindTiempo("Cámaras de larvas (general)");
+  const nt=document.querySelector('[data-txt="nota"]');
+  if(nt) nt.oninput=()=>{ draft.nota=nt.value; sincronizarSerie(); save(); };
+  const gi=document.getElementById("s_grupo");
+  gi.oninput=()=>{ draft.grupo=gi.value; sincronizarSerie(); save(); };
+  gi.onchange=()=>{ const g=(gi.value||"").trim(); draft.grupo=g; if(g && !state.grupos.includes(g)) state.grupos.push(g); sincronizarSerie(); save(); };
+  todas.forEach(c=>{
+    const el=document.querySelector('.numfield[data-key="all_'+c.k+'"]');
+    if(el) el.onclick=()=> openKeypad("all_"+c.k,"dec",c.lab+" · por cámara (se pone en las "+n+")",(v)=>{
+      let k=0; for(let i=0;i<n;i++){ draft["it"+i+"_"+c.k]=v; if(guardarCajaSerie(i,true)) k++; }
+      toast(v? (c.lab+": "+v+" en cada una de "+k+" cámaras") : (c.lab+" borrado en el grupo")); });
+  });
+  document.querySelectorAll("[data-allest]").forEach(b=> b.onclick=()=>{
+    const v=b.dataset.allest, quitar=estTodas(v);
+    for(let i=0;i<n;i++){ draft["it"+i+"_instar"]=quitar?"":v; guardarCajaSerie(i,true); }
+    toast(quitar? "Estadio borrado en el grupo" : ("Todo el grupo en "+v)); render(); });
+  sd.serie.forEach(c=>{
+    const el=document.querySelector('.numfield[data-key="'+c.k+'"]');
+    if(el) el.onclick=()=> openKeypad(c.k,"dec",c.lab,(v)=>{ draft[c.k]=v; sincronizarSerie(); save(); });
+  });
+  divide.forEach(c=>{
+    const el=document.querySelector('.numfield[data-key="grp_'+c.k+'"]');
+    if(el) el.onclick=()=> openKeypad("grp_"+c.k,"dec",c.lab+" · total del grupo (se divide entre "+n+")",(v)=>{
+      const vals=nums.map((x,i)=> draft["it"+i+"_"+c.k]||"");
+      const distintos=vals.some(x=>x!==vals[0]) && vals.some(x=>x!=="");
+      if(distintos && v!=="" && !confirm(c.lab+": las cámaras tienen valores distintos (anotados en detallada).\n\nSe reemplazarán por "+v+" ÷ "+n+" en cada una.\n\n¿Seguir?")) return;
+      const parte = v==="" ? "" : String(Math.round((+v/n)*10000)/10000);
+      for(let i=0;i<n;i++){ draft["it"+i+"_"+c.k]=parte; guardarCajaSerie(i,true); }
+      toast(v? (c.lab+": "+v+" ÷ "+n+" = "+parte+" por cámara") : (c.lab+" borrado en el grupo")); });
+  });
+  document.getElementById("fin").onclick=terminarSerie;
+  document.getElementById("adet").onclick=()=>{ const id=draft.lote_id; sincronizarSerie(); save(); tReset(sd.timer); abrirSerie(id,"serie"); };
+}
+
+/* ---------- CÁMARAS DE LARVAS · REGISTRO RÁPIDO (una fila = un grupo de cámaras) ---------- */
+function startCamGeneral(){ editing=null;
+  draft={ modo:"rapido", grupo:"", camara_desde:"", camara_hasta:"", n_camaras:"", huevos_inoculados_g:"", alimento_g:"",
+          instar:"", cocones:"", adultos_obtenidos:"", larvas_iniciales:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:"" }; }
+function renderCamGeneral(){
+  const chips = INSTARES.map(([v,l,c])=>`<button class="chip sm ${draft.instar===v?'on':''}" data-i="${v}">${c}</button>`).join("");
+  app.innerHTML=`${head("Cámaras de larvas · registro rápido")}<div class="wrap">
+      <label class="fl">Grupo / serie</label>
+      <input class="fin" id="cg_grupo" list="dl_grupos_l" value="${esc(draft.grupo)}" placeholder="Escribe o escoge: 60, Inoc 14-oct, Dieta A…">
+      <datalist id="dl_grupos_l">${state.grupos.map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+      <div class="grid2">${numField('camara_desde','DESDE LA CÁMARA','int','sm')}${numField('camara_hasta','HASTA LA CÁMARA','int','sm')}</div>
+      ${numField('n_camaras','CÁMARAS DEL GRUPO (cantidad)','dec','sm')}
+      <div class="p" style="font-size:12.5px;margin:-2px 0 8px">Opcional: qué cámaras forman el grupo. Con desde y hasta, la cantidad se calcula sola. Los gramos y cocones son el <b>total</b> de todas ellas.</div>
+      <div class="sec" style="margin-top:10px">Datos del grupo</div>
+      ${numField('larvas_iniciales','LARVAS CONTADAS · TOTAL DEL GRUPO (opcional)','dec','sm',IMG.larva)}
+      <div class="grid2">${numField('huevos_inoculados_g','HUEVO CRISOPA INOCULADO · TOTAL (g)','dec','sm',IMG.huevo)}${numField('alimento_g','SITOTROGA · TOTAL (g)','dec','sm',IMG.huevo_sito)}</div>
+      <div class="sec conimg"><img src="${IMG.cocon}" alt="">Estadio actual del grupo</div>
+      <div class="chips">${chips}</div>
+      ${numField('cocones','COCONES · TOTAL DEL GRUPO','dec','',IMG.cocon)}
+      ${numField('adultos_obtenidos','ADULTOS OBTENIDOS · TOTAL DEL GRUPO (opcional)','dec','sm',IMG.adulto)}
+      ${bloqueTiempo("cam_general","Cámaras de larvas (registro rápido)")}
+      <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
+      <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar'}</button>
+      ${editing?'<button class="bigbtn ghost" id="del">Eliminar registro</button>':''}</div>`;
+  document.getElementById("back").onclick=()=>{ editing=null; draft=null; view="camaras_menu"; render(); };
+  bindNum(); bindTxt(); bindTiempo("Cámaras de larvas (registro rápido)");
+  document.getElementById("cg_grupo").oninput=e=>{ draft.grupo=e.target.value; };
+  ["camara_desde","camara_hasta"].forEach(k=>{ const el=document.querySelector('.numfield[data-key="'+k+'"]');
+    if(el) el.onclick=()=> openKeypad(k,"int",el.dataset.label,(v)=>{ draft[k]=v;
+      const d=parseInt(draft.camara_desde,10), h=parseInt(draft.camara_hasta,10);
+      if(!isNaN(d) && !isNaN(h) && h>=d) draft.n_camaras=String(h-d+1); }); });
+  document.querySelectorAll(".chip[data-i]").forEach(c=> c.onclick=()=>{ const v=c.dataset.i; draft.instar=(draft.instar===v?"":v); render(); });
+  document.getElementById("save").onclick=()=>{
+    const g=(draft.grupo||"").trim()||"General";
+    if(!state.grupos.includes(g)) state.grupos.push(g);
+    const d=draft.camara_desde, h=draft.camara_hasta;
+    if(d!=="" && d!=null && h!=="" && h!=null && +h < +d){ toast("La última cámara debe ser igual o mayor que la primera"); return; }
+    if(!draft.huevos_inoculados_g && !draft.alimento_g && !draft.instar && !draft.cocones && !draft.larvas_iniciales && !draft.adultos_obtenidos){ toast("Pon al menos un dato"); return; }
+    if(!editing && state.entries.some(e=>e.tipo==="camara" && e.camara && e.fecha===state.fecha && (e.grupo||"")===g)
+       && !confirm("Hoy ya hay filas POR CÁMARA (general o detallada) del grupo "+g+".\n\nEl registro rápido es el total del grupo: si guardas los dos, el libro sumará el alimento y los cocones dos veces.\n\n¿Guardar el registro rápido de todos modos?")) return;
+    draft.grupo=g; if(draft.modo!=="general") draft.modo="rapido"; push("camara"); tReset("cam_general");
+    toast(editing?"Cambios guardados ✓":"Registro rápido guardado ✓"); editing=null; draft=null; view="camaras_menu"; render(); };
+  if(editing) document.getElementById("del").onclick=()=>{ if(confirm("¿Eliminar?")){ state.entries=state.entries.filter(x=>x.id!==editing); save(); editing=null; draft=null; view="camaras_menu"; render(); } };
+}
+
+/* ---------- COSECHA: escoger general o detallada ---------- */
+function renderCosechaMenu(){
+  app.innerHTML=`${head("Cosecha de huevos")}<div class="wrap">
+      <div class="sec">¿Cómo vas a registrar la cosecha?</div>
+      <button class="seg" id="c_gen"><span class="ico"><img src="${IMG.huevo}" alt=""></span> General <span class="arw">${(n=>n||'')(state.entries.filter(e=>e.tipo==='cosecha'&&e.modo!=='detallada').length)} ›</span></button>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 12px">Un solo registro: nombre del grupo o serie y gramos cosechados.</div>
+      <button class="seg" id="c_det"><span class="ico"><img src="${IMG.adulto}" alt=""></span> Detallada <span class="arw">${(n=>n||'')(state.entries.filter(e=>e.tipo==='cosecha'&&e.modo==='detallada').length)} ›</span></button>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 12px">Cámara por cámara (ej.: serie 60 = cámaras 61 a 63), con valores para todas o para cada una.</div>
+    </div>${footer("")}`;
+  document.getElementById("back").onclick=goHome; bindFooter();
+  document.getElementById("c_gen").onclick=()=>{ startCosecha(); view="cosecha"; render(); };
+  document.getElementById("c_det").onclick=()=> pedirRango("cosecha");
 }
 
 /* ---------- COSECHA DE HUEVOS (por grupo) ---------- */
-function startCosecha(){ editing=null; draft={grupo:"General", grupo_nuevo:"", camaras_cosechadas:"", gramos:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:""}; }
+function startCosecha(){ editing=null; draft={modo:"general", grupo:"", camara_desde:"", camara_hasta:"", camaras_cosechadas:"", gramos:"", vivos_total:"", vivos_hembra:"", muertos_total:"", muertos_hembra:"", muestra_g:"", muestra_huevos:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:""}; }
 function renderCosecha(){
-  const showOtro = draft.grupo===OTROS;
-  app.innerHTML=`${head("Cosecha de huevos")}<div class="wrap">
-      <label class="fl">Grupo / colecta <button id="mg" style="border:none;background:none;color:var(--green-t);font-weight:800;font-size:12px">✎ gestionar</button></label>
-      <select class="fin" id="c_grupo">${opts(state.grupos.concat([OTROS]), draft.grupo||"General")}</select>
-      ${showOtro?`<label class="fl">¿Cuál? (se guardará para reusar)</label><input class="fin" data-txt="grupo_nuevo" value="${esc(draft.grupo_nuevo)}" placeholder="Nombre del grupo">`:''}
-      ${numField('camaras_cosechadas','CÁMARAS COSECHADAS (cantidad)','int')}
-      ${numField('gramos','HUEVO COSECHADO (g)','dec','',IMG.huevo)}
+  const det = draft.modo==="detallada";
+  app.innerHTML=`${head(det?("Cosecha · cámara "+(draft.camara||"")):"Cosecha general")}<div class="wrap">
+      <label class="fl">Grupo / serie <button id="mg" style="border:none;background:none;color:var(--green-t);font-weight:800;font-size:12px">✎ gestionar</button></label>
+      <input class="fin" id="c_grupo" list="dl_grupos_c" value="${esc(draft.grupo)}" placeholder="Escribe o escoge: 60, General, Exp. 1…">
+      <datalist id="dl_grupos_c">${state.grupos.map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+      ${det?'':`<div class="grid2">${numField('camara_desde','DESDE LA CÁMARA','int','sm')}${numField('camara_hasta','HASTA LA CÁMARA','int','sm')}</div>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 8px">Opcional: qué cámaras entran en esta cosecha. El huevo es el <b>total</b> de todas ellas.</div>`}
+      ${det?'':numField('camaras_cosechadas','CÁMARAS COSECHADAS (cantidad)','dec')}
+      ${numField('gramos',det?'HUEVO COSECHADO (g)':'HUEVO COSECHADO · TOTAL DEL GRUPO (g)','dec','',IMG.huevo)}
+      <div class="sec" style="margin-top:10px">${det?'Adultos de la cámara (opcional)':'Adultos de todas esas cámaras, sumados (opcional)'}</div>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 8px">Vivos en la cámara hoy y muertos retirados desde la cosecha anterior. Los machos se calculan en el libro (total − hembras); los que no se pudieron sexar quedan contados como machos.</div>
+      <div class="grid2">${numField('vivos_total','VIVOS · TOTAL','dec','sm',IMG.adulto)}${numField('vivos_hembra','VIVOS · HEMBRAS','dec','sm',IMG.adulto)}</div>
+      <div class="grid2">${numField('muertos_total','MUERTOS · TOTAL','dec','sm')}${numField('muertos_hembra','MUERTOS · HEMBRAS','dec','sm')}</div>
+      <div class="sec" style="margin-top:10px">Calibración huevos por gramo (opcional)</div>
+      <div class="p" style="font-size:12.5px;margin:-2px 0 8px">De vez en cuando: pesa una pizca de huevo y cuenta cuántos huevos tiene. Así los gramos se convierten en número de huevos.</div>
+      <div class="grid2">${numField('muestra_g','MUESTRA PESADA (g)','dec','sm',IMG.huevo)}${numField('muestra_huevos','HUEVOS CONTADOS EN LA MUESTRA','dec','sm')}</div>
       ${bloqueTiempo("cosecha","Cosecha de huevos")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar cosecha'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindNum(); bindTxt(); bindTiempo("Cosecha de huevos");
+  document.getElementById("back").onclick=()=>{ editing=null; draft=null; view="cosecha_menu"; render(); }; bindNum(); bindTxt(); bindTiempo("Cosecha de huevos");
   document.getElementById("mg").onclick=()=>{ view="grupos"; render(); };
-  document.getElementById("c_grupo").onchange=e=>{ draft.grupo=e.target.value; render(); };
+  ["camara_desde","camara_hasta"].forEach(k=>{ const el=document.querySelector('.numfield[data-key="'+k+'"]');
+    if(el) el.onclick=()=> openKeypad(k,"int",el.dataset.label,(v)=>{ draft[k]=v;
+      const d=parseInt(draft.camara_desde,10), h=parseInt(draft.camara_hasta,10);
+      if(!isNaN(d) && !isNaN(h) && h>=d) draft.camaras_cosechadas=String(h-d+1); }); });
+  document.getElementById("c_grupo").oninput=e=>{ draft.grupo=e.target.value; };
   document.getElementById("save").onclick=()=>{
-    let g=draft.grupo||"General";
-    if(g===OTROS){ if(!draft.grupo_nuevo){ toast("Escribe el grupo"); return; } g=draft.grupo_nuevo.trim(); if(!state.grupos.includes(g)) state.grupos.push(g); }
-    if(!draft.gramos){ toast("Falta el huevo cosechado (g)"); return; }
+    const g=(draft.grupo||"").trim()||"General";
+    if(!state.grupos.includes(g)) state.grupos.push(g);
+    if(!det && !draft.gramos){ toast("Falta el huevo cosechado (g)"); return; }
+    const errH=hembrasMal(draft); if(errH){ toast("Revisa: "+errH); return; }
+    if(!det){
+      const d=draft.camara_desde, h=draft.camara_hasta;
+      if(d!=="" && d!=null && h!=="" && h!=null && +h < +d){ toast("La última cámara debe ser igual o mayor que la primera"); return; }
+      if(!editing && state.entries.some(e=>e.tipo==="cosecha" && e.modo==="detallada" && e.fecha===state.fecha && (e.grupo||"")===g)
+         && !confirm("Hoy ya hay cosecha DETALLADA del grupo "+g+".\n\nLa general es el total del grupo: si guardas las dos, el libro contará el huevo dos veces.\n\n¿Guardar la general de todos modos?")) return;
+    }
     draft.grupo=g; push("cosecha"); tReset("cosecha"); toast(editing?"Cambios guardados ✓":"Cosecha guardada ✓"); goHome(); };
 }
 function renderGrupos(){
@@ -746,23 +1125,28 @@ function renderGrupos(){
 }
 
 /* ---------- HUEVOS DE SITOTROGA (ingreso / egreso) ---------- */
-function startSitoHuevo(){ editing=null; draft={ing_cosecha:"",ing_compra:"",egr_alimento:"",egr_inoculo:"",egr_descarte:"",egr_otro_detalle:"",egr_otro_cant:"",duracion_min:"",hora_inicio:"",hora_fin:"",nota:""}; }
+function startSitoHuevo(){ editing=null; draft={ing_cosecha:"",fecha_cosecha:state.fecha||today(),recosecha:"",ing_compra:"",egr_alimento:"",egr_inoculo:"",egr_descarte:"",egr_otro_detalle:"",egr_otro_cant:"",duracion_min:"",hora_inicio:"",hora_fin:"",nota:""}; }
 function renderSitoHuevo(){
   app.innerHTML=`${head("Huevos de Sitotroga")}<div class="wrap">
       <div class="p">Escribe solo la(s) casilla(s) de la tarea que hiciste. Lo demás queda vacío.</div>
       <div class="sec">Ingreso (g)</div>
-      <div class="grid2">${numField('ing_cosecha','Cosecha','dec')}${numField('ing_compra','Compra','dec')}</div>
-      <div class="sec egr">Egreso / gasto (g)</div>
-      <div class="grid2">${numField('egr_alimento','Alimento','dec','egr')}${numField('egr_inoculo','Inóculo','dec','egr')}${numField('egr_descarte','Descarte','dec','egr')}${numField('egr_otro_cant','Otro','dec','egr')}</div>
-      <label class="fl">Si usaste "Otro", ¿cuál?</label><input class="fin" data-txt="egr_otro_detalle" value="${esc(draft.egr_otro_detalle)}" placeholder="Nombre del egreso">
+      <div class="grid2">${numField('ing_cosecha','Cosecha','dec','',IMG.huevo_sito)}${numField('ing_compra','Compra','dec')}</div>
+      <label class="fl">Fecha de cosecha</label>
+      <input class="fin" type="date" id="s_fc" value="${esc(draft.fecha_cosecha)}">
+      ${numField('recosecha','N.º DE RECOSECHA (0 = primera)','int','sm')}
+      <div class="p" style="font-size:12.5px;margin:-2px 0 10px">Fecha de cosecha y recosecha son opcionales y se guardan solo con <b>Cosecha</b>. 0 = primera cosecha de la cámara; 1, 2, 3… = recosechas de los adultos trasladados.</div>
+      <div class="sec egr">Egreso (g)</div>
+      ${numField('egr_descarte','Descarte','dec','egr')}
+      <div class="p" style="font-size:12.5px;margin:-2px 0 10px">El huevo que se gasta en <b>alimentar larvas</b>, <b>sembrar Sitotroga</b> u <b>otras tareas</b> se anota en esa pantalla. El balance del libro lo suma desde allá.</div>
       ${bloqueTiempo("sito_huevo","Huevos de Sitotroga")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar movimiento'}</button></div>`;
   document.getElementById("back").onclick=goHome; bindNum(); bindTxt(); bindTiempo("Huevos de Sitotroga");
+  document.getElementById("s_fc").onchange=e=>{ draft.fecha_cosecha=e.target.value; };
   document.getElementById("save").onclick=()=>{
     const any=["ing_cosecha","ing_compra","egr_alimento","egr_inoculo","egr_descarte","egr_otro_cant"].some(k=>draft[k]);
     if(!any){ toast("Escribe al menos un valor"); return; }
-    if(draft.egr_otro_cant && !draft.egr_otro_detalle){ toast("Escribe cuál es el 'Otro'"); return; }
+    if(!draft.ing_cosecha) draft.fecha_cosecha="";
     push("sito_huevo"); tReset("sito_huevo"); toast(editing?"Cambios guardados ✓":"Movimiento guardado ✓"); goHome(); };
 }
 
@@ -778,49 +1162,65 @@ function renderSitoSiembra(){
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar siembra'}</button></div>`;
   document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Siembra de Sitotroga");
   document.getElementById("save").onclick=()=>{ if(!draft.trigo_kg && !draft.huevos_usados_g){ toast("Pon trigo o huevos usados"); return; }
-    if(faltaOtro('actividad')){ toast("Escribe cuál es la actividad"); return; } push("sito_siembra"); tReset("sito_siembra"); toast(editing?"Cambios guardados ✓":"Siembra guardada ✓"); goHome(); };
+    otroSinNombre('actividad'); push("sito_siembra"); tReset("sito_siembra"); toast(editing?"Cambios guardados ✓":"Siembra guardada ✓"); goHome(); };
 }
 
 /* ---------- LIBERACIÓN EN CAMPO ---------- */
 function startLiberacion(){ editing=null;
-  draft={ huevos_g:"", fecha_cria:"", fecha_liberacion:state.fecha||today(),
-          finca:CONFIG.FINCAS[0], lote_finca:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:"" }; }
+  draft={ etapa:"Montaje", huevos_g:"", fecha_cria:"", fecha_liberacion:state.fecha||today(),
+          finca:CONFIG.FINCAS[0], lote_finca:"", area:"", area_unidad:CONFIG.AREA_UNIDADES[0],
+          concentracion:"", concentracion_unidad:CONFIG.CONC_UNIDADES[0], duracion_min:"", hora_inicio:"", hora_fin:"", nota:"" }; }
 function renderLiberacion(){
+  const mont = (draft.etapa||"Montaje")==="Montaje";
   app.innerHTML=`${head("Liberación en campo")}<div class="wrap">
-      <div class="p">Huevo de Chrysoperla que sale del laboratorio hacia la finca. Se descuenta del balance de huevo cosechado.</div>
-      ${numField('huevos_g','HUEVO LIBERADO (g)','dec','',IMG.huevo)}
+      <div class="sec" style="margin-top:0">¿Qué vas a registrar?</div>
+      <div class="chips"><button class="chip ${mont?'on':''}" data-etapa="Montaje">Montaje</button><button class="chip ${!mont?'on':''}" data-etapa="Liberación">Liberación</button></div>
+      <div class="p" style="font-size:12.5px;margin:2px 0 10px">${mont
+        ? 'El día del <b>montaje</b> se anotan los gramos: es cuando el huevo sale del laboratorio y se descuenta del balance.'
+        : 'El día de la <b>liberación</b> se guarda <b>0 g</b> (los gramos ya se anotaron en el montaje). Finca, lote y área dicen cuál es cuál.'}</div>
+      ${mont?numField('huevos_g','HUEVO MONTADO (g)','dec','',IMG.huevo):''}
       <label class="fl">Fecha de cría (de dónde salió el huevo)</label>
       <input class="fin" type="date" id="l_cria" value="${esc(draft.fecha_cria)}">
-      <label class="fl">Fecha de liberación</label>
+      <label class="fl">${mont?'Fecha prevista de liberación':'Fecha de liberación'}</label>
       <input class="fin" type="date" id="l_lib" value="${esc(draft.fecha_liberacion)}">
-      ${selOtro('finca','Finca',CONFIG.FINCAS)}
-      <label class="fl">Lote / parcela donde se liberó</label>
+      ${selOtro('finca','Finca',CONFIG.FINCAS.concat([NO_DET]))}
+      <label class="fl">Lote / parcela${mont?' de destino (si ya se sabe)':' donde se liberó'}</label>
       <input class="fin" data-txt="lote_finca" value="${esc(draft.lote_finca)}" placeholder="Ej.: Lote 3, La Loma…">
+      <div class="sec" style="margin-top:12px">Área y concentración (opcional)</div>
+      <div class="grid2">${numField('area',mont?'ÁREA A LIBERAR':'ÁREA LIBERADA','dec','sm')}<div><label class="fl" style="margin-top:0">Unidad de área</label><select class="fin" data-key="area_unidad">${opts(CONFIG.AREA_UNIDADES,draft.area_unidad||CONFIG.AREA_UNIDADES[0])}</select></div></div>
+      ${numField('concentracion','CONCENTRACIÓN','dec','sm')}
+      ${selOtro('concentracion_unidad','Unidad de concentración',CONFIG.CONC_UNIDADES)}
       ${bloqueTiempo("liberacion","Liberación en campo")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar liberación'}</button></div>`;
   document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Liberación en campo");
   document.getElementById("l_cria").onchange=e=>{ draft.fecha_cria=e.target.value; };
+  document.querySelectorAll("[data-etapa]").forEach(b=> b.onclick=()=>{ draft.etapa=b.dataset.etapa; render(); });
   document.getElementById("l_lib").onchange=e=>{ draft.fecha_liberacion=e.target.value; };
   document.getElementById("save").onclick=()=>{
-    if(!draft.huevos_g){ toast("Falta el huevo liberado (g)"); return; }
-    if(faltaOtro('finca')){ toast("Escribe cuál es la finca"); return; }
-    if(!draft.lote_finca){ toast("Escribe el lote o parcela"); return; }
+    draft.etapa = draft.etapa||"Montaje";
+    if(draft.etapa==="Montaje"){ if(!draft.huevos_g){ toast("Faltan los gramos montados"); return; } }
+    else draft.huevos_g="0";
+    otroSinNombre('finca'); otroSinNombre('concentracion_unidad',"");
+    if(!draft.area) draft.area_unidad="";
+    if(!draft.concentracion) draft.concentracion_unidad="";
     if(!draft.fecha_liberacion) draft.fecha_liberacion=state.fecha||today();
     push("liberacion"); tReset("liberacion");
-    toast(editing?"Cambios guardados ✓":"Liberación guardada ✓"); goHome(); };
+    toast(editing?"Cambios guardados ✓":(draft.etapa==="Montaje"?"Montaje guardado ✓":"Liberación guardada ✓")); goHome(); };
 }
 
 /* ---------- REGISTROS ---------- */
-const TAGCOLOR={camara:"#016631",cosecha:"#0A7A3C",sito_huevo:"#8C6608",sito_siembra:"#4A3B21",liberacion:"#1F6FB2"};
-const TAGNAME={camara:"cámara",cosecha:"cosecha",sito_huevo:"sito huevo",sito_siembra:"sito siembra",liberacion:"liberación"};
+const TAGCOLOR={camara:"#016631",cosecha:"#0A7A3C",sito_huevo:"#8C6608",sito_siembra:"#4A3B21",liberacion:"#1F6FB2",otra:"#6B6B6B"};
+const TAGNAME={camara:"cámara",cosecha:"cosecha",sito_huevo:"sito huevo",sito_siembra:"sito siembra",liberacion:"liberación",otra:"otra tarea"};
 function metaOf(e){
   const t = e.duracion_min ? ` · ⏱ ${fmtDur(+e.duracion_min)}${e.unidades_lote?` / ${e.unidades_lote} cám.`:''}` : '';
-  if(e.tipo==="camara") return `Cámara ${e.camara}${e.grupo?` · ${e.grupo}`:''} · alimento ${e.alimento_g||'—'} g${e.instar?` · ${e.instar}`:''}${e.larvas_iniciales?` · ${e.larvas_iniciales} larvas`:''}${e.adultos_obtenidos?` · ${e.adultos_obtenidos} adultos`:''}${t}`;
-  if(e.tipo==="cosecha") return `${e.grupo} · ${e.camaras_cosechadas||'—'} cámaras · ${e.gramos||'—'} g${t}`;
-  if(e.tipo==="sito_huevo"){ const p=[]; if(e.ing_cosecha)p.push("cosecha +"+e.ing_cosecha); if(e.ing_compra)p.push("compra +"+e.ing_compra); if(e.egr_alimento)p.push("alimento -"+e.egr_alimento); if(e.egr_inoculo)p.push("inóculo -"+e.egr_inoculo); if(e.egr_descarte)p.push("descarte -"+e.egr_descarte); if(e.egr_otro_cant)p.push((e.egr_otro_detalle||"otro")+" -"+e.egr_otro_cant); return (p.join(" · ")||"—")+t; }
+  if(esRapida(e)) return `Registro rápido · ${e.grupo||'—'}${e.camara_desde?` · cám. ${e.camara_desde}–${e.camara_hasta}`:''}${e.n_camaras?` · ${e.n_camaras} cámaras`:''}${e.huevos_inoculados_g?` · inóculo ${e.huevos_inoculados_g} g`:''}${e.alimento_g?` · Sitotroga ${e.alimento_g} g`:''}${e.instar?` · ${e.instar}`:''}${e.cocones?` · ${e.cocones} cocones`:''}${e.adultos_obtenidos?` · ${e.adultos_obtenidos} adultos`:''}${e.larvas_iniciales?` · ${e.larvas_iniciales} larvas contadas`:''}${t}`;
+  if(e.tipo==="camara") return `${e.modo==="general"?"General · ":""}Cámara ${e.camara}${e.grupo?` · ${e.grupo}`:''}${e.huevos_inoculados_g?` · inóculo ${e.huevos_inoculados_g} g crisopa`:''}${e.alimento_g?` · Sitotroga ${e.alimento_g} g`:''}${e.instar?` · ${e.instar}`:''}${e.cocones?` · ${e.cocones} cocones`:''}${e.larvas_iniciales?` · ${e.larvas_iniciales} larvas contadas`:''}${e.adultos_obtenidos?` · ${e.adultos_obtenidos} adultos`:''}${t}`;
+  if(e.tipo==="cosecha") return `${e.modo==="detallada"?`Serie ${e.grupo||'—'} · cámara ${e.camara}`:`${e.grupo} · ${e.camara_desde?`cám. ${e.camara_desde}–${e.camara_hasta} · `:''}${e.camaras_cosechadas||'—'} cámaras`} · ${e.gramos||'—'} g${e.vivos_total?` · vivos ${e.vivos_total} (♀${e.vivos_hembra||'—'})`:''}${e.muertos_total?` · muertos ${e.muertos_total} (♀${e.muertos_hembra||'—'})`:''}${e.muestra_g?` · muestra ${e.muestra_huevos} huevos/${e.muestra_g} g`:''}${t}`;
+  if(e.tipo==="otra") return `${(e.tarea===OTRA_LIBRE?(e.detalle||"Otra tarea"):e.tarea)||"Otra tarea"}${e.unidades?` · ${e.unidades} und.`:''}${e.insumo?` · ${e.insumo} ${e.insumo_cantidad||''} ${e.insumo_unidad||''}`:''}${e.sito_huevo_gasto_g?` · Sitotroga −${e.sito_huevo_gasto_g} g`:''}${t}`;
+  if(e.tipo==="sito_huevo"){ const p=[]; if(e.ing_cosecha)p.push("cosecha +"+e.ing_cosecha+(e.fecha_cosecha?" ("+e.fecha_cosecha+", recosecha "+(e.recosecha||0)+")":"")); if(e.ing_compra)p.push("compra +"+e.ing_compra); if(e.egr_alimento)p.push("alimento -"+e.egr_alimento); if(e.egr_inoculo)p.push("inóculo -"+e.egr_inoculo); if(e.egr_descarte)p.push("descarte -"+e.egr_descarte); if(e.egr_otro_cant)p.push((e.egr_otro_detalle||"otro")+" -"+e.egr_otro_cant); return (p.join(" · ")||"—")+t; }
   if(e.tipo==="sito_siembra") return `${e.actividad} · trigo ${e.trigo_kg||'—'} kg · huevos ${e.huevos_usados_g||'—'} g${t}`;
-  if(e.tipo==="liberacion") return `${e.huevos_g||'—'} g → ${e.finca} · ${e.lote_finca||'—'}${e.fecha_cria?` · cría ${e.fecha_cria}`:''}${t}`;
+  if(e.tipo==="liberacion") return `${e.etapa?e.etapa+' · ':''}${e.huevos_g||'—'} g${e.area?` · ${e.area} ${e.area_unidad||''}`:''}${e.concentracion?` · ${e.concentracion} ${e.concentracion_unidad||''}`:''} → ${e.finca} · ${e.lote_finca||'—'}${e.fecha_cria?` · cría ${e.fecha_cria}`:''}${t}`;
   return "";
 }
 function renderRegistros(){
@@ -844,8 +1244,9 @@ function renderRegistros(){
   document.getElementById("csvt").onclick=exportCSVTiempos;
   document.querySelectorAll(".edit").forEach(b=> b.onclick=()=>{ const e=state.entries.find(x=>x.id===b.dataset.id); if(!e)return; editing=e.id; draft=clone(e);
     if(draft.duracion_min==null)draft.duracion_min="";
-    if(e.tipo==="camara"){ curCam=e.camara; if(draft.instar==null)draft.instar=""; if(draft.cocones==null)draft.cocones=""; view="camara_entry"; }
-    else { ["huevos_g","fecha_cria","fecha_liberacion","lote_finca","tarea","detalle","unidades"].forEach(k=>{ if(draft[k]==null) draft[k]=""; }); view=e.tipo; }
+    if(esRapida(e)){ ["camara_desde","camara_hasta","n_camaras","huevos_inoculados_g","alimento_g","instar","cocones","adultos_obtenidos","larvas_iniciales","grupo"].forEach(k=>{ if(draft[k]==null) draft[k]=""; }); view="camara_general"; }
+    else if(e.tipo==="camara"){ curCam=e.camara; if(draft.instar==null)draft.instar=""; if(draft.cocones==null)draft.cocones=""; view="camara_entry"; }
+    else { ["etapa","area","area_unidad","concentracion","concentracion_unidad","camara_desde","camara_hasta","huevos_g","fecha_cria","fecha_liberacion","lote_finca","tarea","detalle","unidades","insumo","insumo_cantidad","insumo_unidad","sito_huevo_gasto_g","fecha_cosecha","recosecha"].forEach(k=>{ if(draft[k]==null) draft[k]=""; }); view=e.tipo; }
     tReset(e.tipo); render(); });
   document.querySelectorAll(".del").forEach(b=> b.onclick=()=>{ if(confirm("¿Eliminar este registro?")){ state.entries=state.entries.filter(x=>x.id!==b.dataset.id); save(); render(); } });
 }
@@ -867,7 +1268,7 @@ function push(tipo){
 }
 
 function startOtra(){ editing=null;
-  draft={ tarea:CONFIG.TAREAS[0], detalle:"", unidades:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:"" }; }
+  draft={ tarea:CONFIG.TAREAS[0], detalle:"", unidades:"", insumo:"", insumo_cantidad:"", insumo_unidad:CONFIG.UNIDADES[0], sito_huevo_gasto_g:"", duracion_min:"", hora_inicio:"", hora_fin:"", nota:"" }; }
 
 /* ---------- OTRAS TAREAS ---------- */
 function renderOtra(){
@@ -876,17 +1277,23 @@ function renderOtra(){
       <div class="p">Trabajo del laboratorio que no cae en las otras pantallas. Queda registrado con su tiempo, para saber cuánto pesa en la jornada.</div>
       <label class="fl">Tarea</label><select class="fin" data-key="tarea">${opts(CONFIG.TAREAS,draft.tarea)}</select>
       ${libre?`<label class="fl">¿Cuál?</label><input class="fin" data-txt="detalle" value="${esc(draft.detalle)}" placeholder="Escribe cuál fue la tarea">`:''}
-      ${numField('unidades','CANTIDAD (opcional)','int')}
+      ${numField('unidades','CANTIDAD (opcional)','dec')}
       <div class="p" style="font-size:12.5px;margin:-2px 0 10px">Cámaras limpiadas, áreas fumigadas, bandejas trasladadas… lo que se pueda contar. Con esto el libro calcula los minutos por unidad.</div>
+      <div class="sec" style="margin-top:10px">Gasto en esta tarea (opcional)</div>
+      ${selOtro('insumo','Insumo gastado',CONFIG.INSUMOS)}
+      <div class="grid2">${numField('insumo_cantidad','CANTIDAD DEL INSUMO','dec','sm')}<div><label class="fl" style="margin-top:0">Unidad</label><select class="fin" data-key="insumo_unidad">${opts(CONFIG.UNIDADES,draft.insumo_unidad||CONFIG.UNIDADES[0])}</select></div></div>
+      ${numField('sito_huevo_gasto_g','HUEVO DE SITOTROGA GASTADO (g)','dec','',IMG.huevo_sito)}
       ${bloqueTiempo("otra","Otras tareas")}
       <label class="fl">Anotación</label><input class="fin" data-txt="nota" value="${esc(draft.nota)}" placeholder="Solo si hace falta…">
       <button class="bigbtn primary" id="save">${editing?'Guardar cambios':'Guardar tarea'}</button></div>`;
-  document.getElementById("back").onclick=goHome; bindSelects(); bindNum(); bindTxt(); bindTiempo("Otras tareas");
+  document.getElementById("back").onclick=goHome; bindSelects(); bindSelOtro(); bindNum(); bindTxt(); bindTiempo("Otras tareas");
   const sel=document.querySelector('select[data-key="tarea"]');
   if(sel) sel.onchange=()=>{ draft.tarea=sel.value; if(draft.tarea!==OTRA_LIBRE) draft.detalle=""; render(); };
   document.getElementById("save").onclick=()=>{
-    if(draft.tarea===OTRA_LIBRE && !draft.detalle){ toast("Escribe cuál fue la tarea"); return; }
-    if(!draft.duracion_min && !draft.unidades && !draft.nota){ toast("Pon al menos el tiempo o la cantidad"); return; }
+    if(draft.insumo==="Ninguno") draft.insumo="";
+    otroSinNombre('insumo');
+    if(!draft.insumo && !draft.insumo_cantidad) draft.insumo_unidad="";
+    if(!draft.duracion_min && !draft.unidades && !draft.nota && !draft.insumo && !draft.insumo_cantidad && !draft.sito_huevo_gasto_g){ toast("Pon al menos el tiempo, la cantidad o un gasto"); return; }
     push("otra"); tReset("otra"); toast(editing?"Cambios guardados ✓":"Tarea guardada ✓"); goHome(); };
 }
 
@@ -913,17 +1320,19 @@ function archivarSubidos(){
 /* =========================================================================
    SALIDA: CSV, hoja de TIEMPOS y Apps Script
    ========================================================================= */
-const HEADERS=["id","tipo","fecha",
-  "camara","alimento_g","instar","lote_id","unidades_lote","larvas_iniciales","adultos_obtenidos",
-  "grupo","camaras_cosechadas","gramos",
+const HEADERS=["id","tipo","fecha","semana",
+  "modo","camara","n_camaras","huevos_inoculados_g","alimento_g","instar","vivos_total","vivos_hembra","muertos_total","lote_id","unidades_lote","larvas_iniciales","adultos_obtenidos",
+  "grupo","camara_desde","camara_hasta","camaras_cosechadas","gramos","muertos_hembra","muestra_g","muestra_huevos",
+  "fecha_cosecha","recosecha","insumo","insumo_cantidad","insumo_unidad","sito_huevo_gasto_g",
   "ing_cosecha","ing_compra","egr_alimento","egr_inoculo","egr_descarte","egr_otro_detalle","egr_otro_cant",
   "actividad","trigo_kg","huevos_usados_g",
-  "huevos_g","fecha_cria","fecha_liberacion","finca","lote_finca",
+  "etapa","huevos_g","fecha_cria","fecha_liberacion","finca","lote_finca","area","area_unidad","concentracion","concentracion_unidad",
   "cocones","tarea","detalle","unidades",
   "hora_inicio","hora_fin","duracion_min",
   "nota","responsable","timestamp"];
 /* Una sola función traduce registro → columna, la usan el CSV y el XLSX. */
 function valOf(e,c){
+  if(c==="semana") return semanaDe(e);
   if(c==="timestamp") return e.ts||"";
   return (e[c]!=null && e[c]!==undefined) ? e[c] : "";
 }
@@ -931,19 +1340,19 @@ function rowOf(e){ return HEADERS.map(c=>valOf(e,c)); }
 
 /* Cada pestaña del libro con sus columnas propias, igual que el Sheet de análisis. */
 const HOJAS=[
-  {tipo:"camara",       nombre:"Cria_camaras",     cols:["id","fecha","camara","alimento_g","instar","lote_id","unidades_lote","grupo","larvas_iniciales","adultos_obtenidos","cocones","duracion_min","nota","responsable","timestamp"]},
-  {tipo:"cosecha",      nombre:"Crisopa_cosecha",  cols:["id","fecha","grupo","camaras_cosechadas","gramos","duracion_min","nota","responsable","timestamp"]},
-  {tipo:"liberacion",   nombre:"Crisopa_liberacion",cols:["id","fecha","fecha_cria","fecha_liberacion","huevos_g","finca","lote_finca","duracion_min","nota","responsable","timestamp"]},
-  {tipo:"sito_huevo",   nombre:"Sitotroga_huevo",  cols:["id","fecha","ing_cosecha","ing_compra","egr_alimento","egr_inoculo","egr_descarte","egr_otro_detalle","egr_otro_cant","duracion_min","nota","responsable","timestamp"]},
+  {tipo:"camara",       nombre:"Cria_camaras",     cols:["id","fecha","semana","modo","camara","camara_desde","camara_hasta","n_camaras","huevos_inoculados_g","alimento_g","instar","lote_id","unidades_lote","grupo","larvas_iniciales","adultos_obtenidos","cocones","duracion_min","nota","responsable","timestamp"]},
+  {tipo:"cosecha",      nombre:"Crisopa_cosecha",  cols:["id","fecha","semana","modo","grupo","camara","camara_desde","camara_hasta","lote_id","unidades_lote","camaras_cosechadas","gramos","vivos_total","vivos_hembra","muertos_total","muertos_hembra","muestra_g","muestra_huevos","duracion_min","nota","responsable","timestamp"]},
+  {tipo:"liberacion",   nombre:"Crisopa_liberacion",cols:["id","fecha","etapa","fecha_cria","fecha_liberacion","huevos_g","finca","lote_finca","area","area_unidad","concentracion","concentracion_unidad","duracion_min","nota","responsable","timestamp"]},
+  {tipo:"sito_huevo",   nombre:"Sitotroga_huevo",  cols:["id","fecha","semana","ing_cosecha","fecha_cosecha","recosecha","ing_compra","egr_alimento","egr_inoculo","egr_descarte","egr_otro_detalle","egr_otro_cant","duracion_min","nota","responsable","timestamp"]},
   {tipo:"sito_siembra", nombre:"Sitotroga_siembra",cols:["id","fecha","actividad","trigo_kg","huevos_usados_g","duracion_min","nota","responsable","timestamp"]},
-  {tipo:"otra",         nombre:"Otras_tareas",     cols:["id","fecha","tarea","detalle","unidades","hora_inicio","hora_fin","duracion_min","nota","responsable","timestamp"]}
+  {tipo:"otra",         nombre:"Otras_tareas",     cols:["id","fecha","tarea","detalle","unidades","insumo","insumo_cantidad","insumo_unidad","sito_huevo_gasto_g","hora_inicio","hora_fin","duracion_min","nota","responsable","timestamp"]}
 ];
 
 /* Cada registro con duración genera además una fila en la hoja Tiempos.
    'unidades' es lo que permite calcular rendimiento (min por cámara, min por g, …). */
 const TAREA={
-  camara:      {tarea:"Cámaras de larvas",     ref:e=>(e.unidades_lote? "tanda "+e.lote_id : "cámara "+e.camara), und:e=>e.unidades_lote||"1", u:"cámaras"},
-  cosecha:     {tarea:"Cosecha de huevos",     ref:e=>e.grupo||"",      und:e=>e.camaras_cosechadas||"", u:"cámaras"},
+  camara:      {tarea:"Cámaras de larvas",     ref:e=>(esRapida(e) ? "registro rápido "+(e.grupo||"") : e.modo==="general" && e.unidades_lote ? "general "+(e.grupo||e.lote_id) : e.unidades_lote? "serie "+(e.grupo||e.lote_id) : "cámara "+e.camara), und:e=>(esRapida(e) ? (e.n_camaras||"") : (e.unidades_lote||"1")), u:"cámaras"},
+  cosecha:     {tarea:"Cosecha de huevos",     ref:e=>(e.modo==="detallada"?"serie ":"")+(e.grupo||""), und:e=>e.unidades_lote||e.camaras_cosechadas||"", u:"cámaras"},
   sito_huevo:  {tarea:"Manejo huevo Sitotroga",ref:e=>"",               und:e=>e.ing_cosecha||"",        u:"g cosechados"},
   sito_siembra:{tarea:"Siembra de Sitotroga",  ref:e=>e.actividad||"",  und:e=>e.trigo_kg||"",           u:"kg trigo"},
   liberacion:  {tarea:"Liberación en campo",  ref:e=>((e.finca||"")+" "+(e.lote_finca||"")).trim(), und:e=>e.huevos_g||"", u:"g liberados"},
@@ -1154,7 +1563,7 @@ function syncSheets(){
   const pend=unsynced();
   if(!pend.length){ toast("Nada pendiente"); return; }
   if(!CONFIG.SCRIPT_URL && !puenteNativo()){ toast("Falta la URL del Apps Script → usa XLSX"); return; }
-  const payload=pend.map(e=>{ const o=Object.assign({},e); delete o.synced; return o; }).concat(tiemposDe(pend));
+  const payload=pend.map(e=>{ const o=Object.assign({},e); delete o.synced; const w=semanaDe(o); if(w!=="") o.semana=w; return o; }).concat(tiemposDe(pend));
   toast("Enviando…");
   enviarPayload(payload)
     .then(res=>{ pend.forEach(e=>e.synced=true); save();
